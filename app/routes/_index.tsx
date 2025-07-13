@@ -1,138 +1,221 @@
+import { useEffect, useState } from "react";
 import type { MetaFunction } from "@remix-run/node";
+import { json, LoaderFunctionArgs } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import prisma from "../prisma.server";
+import "../styles/scrollbar-hide.css";
+import { Link, useLocation } from "@remix-run/react";
 
-export const meta: MetaFunction = () => {
-  return [
-    { title: "New Remix App" },
-    { name: "description", content: "Welcome to Remix!" },
-  ];
-};
+export const meta: MetaFunction = () => [
+  { title: "Exam Prep Platform" },
+  { name: "description", content: "A PWA for exam aspirants to prepare for competitive exams." },
+];
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  const [exams, testSeries, notes, heroSections] = await Promise.all([
+    prisma.exam.findMany({ orderBy: { id: "asc" }, take: 10 }),
+    prisma.testSeries.findMany({ orderBy: { id: "asc" }, take: 10 }),
+    prisma.note.findMany({ orderBy: { id: "asc" }, take: 10 }),
+    prisma.heroSection.findMany({ orderBy: { id: "asc" } }),
+  ]);
+  return json({ exams, testSeries, notes, heroSections });
+}
 
 export default function Index() {
+  const { exams, testSeries, notes, heroSections } = useLoaderData<typeof loader>();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [heroIndex, setHeroIndex] = useState(0);
+  const location = useLocation();
+
+  // Carousel auto-advance
+  useEffect(() => {
+    if (heroSections.length <= 1) return;
+    const interval = setInterval(() => {
+      setHeroIndex((i) => (i + 1) % heroSections.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [heroSections.length]);
+
   return (
-    <div className="flex h-screen items-center justify-center">
-      <div className="flex flex-col items-center gap-16">
-        <header className="flex flex-col items-center gap-9">
-          <h1 className="leading text-2xl font-bold text-gray-800 dark:text-gray-100">
-            Welcome to <span className="sr-only">Remix</span>
-          </h1>
-          <div className="h-[144px] w-[434px]">
-            <img
-              src="/logo-light.png"
-              alt="Remix"
-              className="block w-full dark:hidden"
-            />
-            <img
-              src="/logo-dark.png"
-              alt="Remix"
-              className="hidden w-full dark:block"
-            />
+    <div className="min-h-screen flex flex-col bg-white">
+      {/* Header with search and menu */}
+      <header className="flex items-center justify-between px-4 py-3 border-b">
+        <button
+          className="text-2xl font-bold"
+          aria-label="Open menu"
+          onClick={() => {
+            console.log('Menu icon clicked');
+            setSidebarOpen(true);
+          }}
+        >
+          &#9776;
+        </button>
+        <div className="flex-1 mx-4">
+          <input
+            type="text"
+            placeholder="Search"
+            className="w-full rounded-full border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <Link to="/profile" aria-label="Profile" className="text-xl">
+          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 20c0-4 8-4 8-4s8 0 8 4" />
+          </svg>
+        </Link>
+      </header>
+
+      {/* Sidebar and overlay */}
+      {sidebarOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-30 bg-black bg-opacity-40"
+            onClick={() => setSidebarOpen(false)}
+          />
+          <aside
+            className="fixed top-0 left-0 h-full w-64 z-40 transition-transform duration-200 backdrop-blur-xl bg-white/60 border-r border-white/30 shadow-lg"
+            style={{ transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)" }}
+            aria-label="Sidebar"
+            aria-modal="true"
+            tabIndex={-1}
+          >
+            <div className="flex items-center justify-between px-4 py-4 border-b border-white/30">
+              <span className="text-lg font-bold">Menu</span>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                aria-label="Close sidebar"
+                className="text-2xl focus:outline-none"
+              >
+                &times;
+              </button>
+            </div>
+            <nav className="flex flex-col gap-2 p-4">
+              <NavLink icon={<HomeIcon className="w-5 h-5 mr-2" />} label="Home" />
+              <NavLink icon={<CoursesIcon className="w-5 h-5 mr-2" />} label="Courses" />
+              <NavLink icon={<DoubtsIcon className="w-5 h-5 mr-2" />} label="Doubts" />
+              <NavLink icon={<CommunityIcon className="w-5 h-5 mr-2" />} label="Community" />
+              <NavLink icon={<ProfileIcon className="w-5 h-5 mr-2" />} label="Profile" />
+            </nav>
+          </aside>
+        </>
+      )}
+
+      {/* Hero image */}
+      <div className="w-full flex justify-center py-6">
+        {heroSections.length > 0 && (
+          <div className="relative w-full max-w-xl">
+            <img src={heroSections[heroIndex].imageUrl} alt="Hero" className="w-full h-56 object-cover rounded-xl" />
+            <div className="absolute bottom-4 left-0 right-0 text-center text-white text-lg font-semibold bg-black bg-opacity-40 px-4 py-2 rounded-b-xl">
+              {heroSections[heroIndex].text}
+            </div>
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+              {heroSections.map((_: any, idx: number) => (
+                <button key={idx} className={`w-2 h-2 rounded-full ${idx === heroIndex ? 'bg-white' : 'bg-gray-400'} transition`} onClick={() => setHeroIndex(idx)} aria-label={`Go to slide ${idx + 1}`}></button>
+              ))}
+            </div>
           </div>
-        </header>
-        <nav className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-gray-200 p-6 dark:border-gray-700">
-          <p className="leading-6 text-gray-700 dark:text-gray-200">
-            What&apos;s next?
-          </p>
-          <ul>
-            {resources.map(({ href, text, icon }) => (
-              <li key={href}>
-                <a
-                  className="group flex items-center gap-3 self-stretch p-3 leading-normal text-blue-700 hover:underline dark:text-blue-500"
-                  href={href}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {icon}
-                  {text}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        )}
       </div>
+
+      {/* Main content */}
+      <main className="flex-1 px-4 pb-24">
+        {/* Exams */}
+        <section className="mb-6">
+          <h2 className="text-xl font-bold mb-2">Exams</h2>
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
+            {exams.map((exam: { id: number; title: string; imageUrl?: string }) => (
+              <Card key={exam.id} title={exam.title} img={exam.imageUrl} />
+            ))}
+          </div>
+        </section>
+        {/* Test Series */}
+        <section className="mb-6">
+          <h2 className="text-xl font-bold mb-2">Test Series</h2>
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
+            {testSeries.map((ts: { id: number; title: string; imageUrl?: string }) => (
+              <Card key={ts.id} title={ts.title} img={ts.imageUrl} />
+            ))}
+          </div>
+        </section>
+        {/* Notes */}
+        <section>
+          <h2 className="text-xl font-bold mb-2">Notes</h2>
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
+            {notes.map((note: { id: number; title: string; imageUrl?: string }) => (
+              <Card key={note.id} title={note.title} img={note.imageUrl} />
+            ))}
+          </div>
+        </section>
+      </main>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around items-center h-16 z-50">
+        <NavItem icon={HomeIcon} label="Home" to="/" active={location.pathname === "/"} />
+        <NavItem icon={JobsIcon} label="Jobs" to="/jobs" active={location.pathname === "/jobs"} />
+        <NavItem icon={NotificationsIcon} label="Notifications" to="/notifications" active={location.pathname === "/notifications"} />
+        <NavItem icon={ProfileIcon} label="Profile" to="/profile" active={location.pathname === "/profile"} />
+      </nav>
     </div>
   );
 }
 
-const resources = [
-  {
-    href: "https://remix.run/start/quickstart",
-    text: "Quick Start (5 min)",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="20"
-        viewBox="0 0 20 20"
-        fill="none"
-        className="stroke-gray-600 group-hover:stroke-current dark:stroke-gray-300"
-      >
-        <path
-          d="M8.51851 12.0741L7.92592 18L15.6296 9.7037L11.4815 7.33333L12.0741 2L4.37036 10.2963L8.51851 12.0741Z"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-  },
-  {
-    href: "https://remix.run/start/tutorial",
-    text: "Tutorial (30 min)",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="20"
-        viewBox="0 0 20 20"
-        fill="none"
-        className="stroke-gray-600 group-hover:stroke-current dark:stroke-gray-300"
-      >
-        <path
-          d="M4.561 12.749L3.15503 14.1549M3.00811 8.99944H1.01978M3.15503 3.84489L4.561 5.2508M8.3107 1.70923L8.3107 3.69749M13.4655 3.84489L12.0595 5.2508M18.1868 17.0974L16.635 18.6491C16.4636 18.8205 16.1858 18.8205 16.0144 18.6491L13.568 16.2028C13.383 16.0178 13.0784 16.0347 12.915 16.239L11.2697 18.2956C11.047 18.5739 10.6029 18.4847 10.505 18.142L7.85215 8.85711C7.75756 8.52603 8.06365 8.21994 8.39472 8.31453L17.6796 10.9673C18.0223 11.0653 18.1115 11.5094 17.8332 11.7321L15.7766 13.3773C15.5723 13.5408 15.5554 13.8454 15.7404 14.0304L18.1868 16.4767C18.3582 16.6481 18.3582 16.926 18.1868 17.0974Z"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-  },
-  {
-    href: "https://remix.run/docs",
-    text: "Remix Docs",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="20"
-        viewBox="0 0 20 20"
-        fill="none"
-        className="stroke-gray-600 group-hover:stroke-current dark:stroke-gray-300"
-      >
-        <path
-          d="M9.99981 10.0751V9.99992M17.4688 17.4688C15.889 19.0485 11.2645 16.9853 7.13958 12.8604C3.01467 8.73546 0.951405 4.11091 2.53116 2.53116C4.11091 0.951405 8.73546 3.01467 12.8604 7.13958C16.9853 11.2645 19.0485 15.889 17.4688 17.4688ZM2.53132 17.4688C0.951566 15.8891 3.01483 11.2645 7.13974 7.13963C11.2647 3.01471 15.8892 0.951453 17.469 2.53121C19.0487 4.11096 16.9854 8.73551 12.8605 12.8604C8.73562 16.9853 4.11107 19.0486 2.53132 17.4688Z"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-      </svg>
-    ),
-  },
-  {
-    href: "https://rmx.as/discord",
-    text: "Join Discord",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="20"
-        viewBox="0 0 24 20"
-        fill="none"
-        className="stroke-gray-600 group-hover:stroke-current dark:stroke-gray-300"
-      >
-        <path
-          d="M15.0686 1.25995L14.5477 1.17423L14.2913 1.63578C14.1754 1.84439 14.0545 2.08275 13.9422 2.31963C12.6461 2.16488 11.3406 2.16505 10.0445 2.32014C9.92822 2.08178 9.80478 1.84975 9.67412 1.62413L9.41449 1.17584L8.90333 1.25995C7.33547 1.51794 5.80717 1.99419 4.37748 2.66939L4.19 2.75793L4.07461 2.93019C1.23864 7.16437 0.46302 11.3053 0.838165 15.3924L0.868838 15.7266L1.13844 15.9264C2.81818 17.1714 4.68053 18.1233 6.68582 18.719L7.18892 18.8684L7.50166 18.4469C7.96179 17.8268 8.36504 17.1824 8.709 16.4944L8.71099 16.4904C10.8645 17.0471 13.128 17.0485 15.2821 16.4947C15.6261 17.1826 16.0293 17.8269 16.4892 18.4469L16.805 18.8725L17.3116 18.717C19.3056 18.105 21.1876 17.1751 22.8559 15.9238L23.1224 15.724L23.1528 15.3923C23.5873 10.6524 22.3579 6.53306 19.8947 2.90714L19.7759 2.73227L19.5833 2.64518C18.1437 1.99439 16.6386 1.51826 15.0686 1.25995ZM16.6074 10.7755L16.6074 10.7756C16.5934 11.6409 16.0212 12.1444 15.4783 12.1444C14.9297 12.1444 14.3493 11.6173 14.3493 10.7877C14.3493 9.94885 14.9378 9.41192 15.4783 9.41192C16.0471 9.41192 16.6209 9.93851 16.6074 10.7755ZM8.49373 12.1444C7.94513 12.1444 7.36471 11.6173 7.36471 10.7877C7.36471 9.94885 7.95323 9.41192 8.49373 9.41192C9.06038 9.41192 9.63892 9.93712 9.6417 10.7815C9.62517 11.6239 9.05462 12.1444 8.49373 12.1444Z"
-          strokeWidth="1.5"
-        />
-      </svg>
-    ),
-  },
-];
+function Card({ title, img }: { title: string; img?: string }) {
+  return (
+    <div className="min-w-[160px] max-w-[180px] bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 shadow-sm">
+      <div className="h-28 w-full bg-gray-200 flex items-center justify-center">
+        <img src={img} alt={title} className="object-cover h-full w-full" />
+      </div>
+      <div className="p-2 text-sm font-medium text-gray-800">{title}</div>
+    </div>
+  );
+}
+
+function NavItem({ icon: Icon, label, to, active }: { icon: any; label: string; to: string; active?: boolean }) {
+  return (
+    <Link to={to} prefetch="intent" className={`flex flex-col items-center text-xs ${active ? "text-blue-600" : "text-gray-500"}`}>
+      <Icon className="w-6 h-6 mb-1" />
+      {label}
+    </Link>
+  );
+}
+
+function HomeIcon(props: any) {
+  return <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9" /><path d="M9 21V9h6v12" /></svg>;
+}
+function CoursesIcon(props: any) {
+  return <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>;
+}
+function DoubtsIcon(props: any) {
+  return <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><circle cx="12" cy="8" r="1" /></svg>;
+}
+function CommunityIcon(props: any) {
+  return <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M8 16v-1a4 4 0 0 1 8 0v1" /><circle cx="12" cy="8" r="4" /></svg>;
+}
+function ProfileIcon(props: any) {
+  return <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M6 20v-2a4 4 0 0 1 8 0v2" /></svg>;
+}
+
+function NavLink({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <a href="#" className="flex items-center py-2 px-3 rounded-lg hover:bg-white/40 transition">
+      {icon}
+      <span>{label}</span>
+    </a>
+  );
+}
+
+function JobsIcon(props: any) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M16 3v4M8 3v4M3 10h18" />
+    </svg>
+  );
+}
+function NotificationsIcon(props: any) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V4a2 2 0 1 0-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9" />
+    </svg>
+  );
+}
