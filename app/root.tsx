@@ -9,6 +9,7 @@ import {
 } from "@remix-run/react";
 import type { LinksFunction } from "@remix-run/node";
 import tailwindStylesheetUrl from "./styles/tailwind.css?url";
+import { ThemeProvider } from "./hooks/useTheme";
 
 export const links: LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -22,6 +23,7 @@ export const links: LinksFunction = () => [
     href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
   },
   { rel: "stylesheet", href: tailwindStylesheetUrl },
+  { rel: "stylesheet", href: "./styles/theme.css" },
   { rel: "manifest", href: "/manifest.json" },
   { rel: "icon", href: "/favicon.ico" },
   { rel: "apple-touch-icon", href: "/logo-light.png" },
@@ -46,10 +48,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body>
+      <body className="bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
         {children}
         {/* Bottom Navigation (global) */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around items-center h-16 z-50">
+        <nav className="fixed bottom-0 left-0 right-0 bg-[var(--color-bottom-nav)] border-t border-[var(--color-border)] flex justify-around items-center h-16 z-50">
           <NavItem icon={HomeIcon} label="Home" to="/" active={location.pathname === "/"} />
           <NavItem icon={JobsIcon} label="Jobs" to="/jobs" active={location.pathname === "/jobs"} />
           <NavItem icon={QuizIcon} label="Quiz" to="/quiz" active={location.pathname === "/quiz"} />
@@ -64,12 +66,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <ThemeProvider>
+      <Outlet />
+    </ThemeProvider>
+  );
 }
 
 function NavItem({ icon: Icon, label, to, active }: { icon: any; label: string; to: string; active?: boolean }) {
   return (
-    <Link to={to} prefetch="intent" className={`flex flex-col items-center text-xs ${active ? "text-blue-600" : "text-gray-500"}`}>
+    <Link to={to} prefetch="intent" className={`flex flex-col items-center text-xs ${active ? "text-[var(--color-accent-primary)]" : "text-[var(--color-text-secondary)]"}`}>
       <Icon className="w-6 h-6 mb-1" />
       {label}
     </Link>

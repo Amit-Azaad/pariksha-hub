@@ -1,0 +1,77 @@
+/* Theme CSS Variables */
+:root {
+  /* Light mode defaults */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #d8e4ff;
+  --color-bg-surface: #f8fafc;
+  --color-bg-muted: #f1f5f9;
+  --color-border: #e2e8f0;
+  --color-border-secondary: #c7d2fe;
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #64748b;
+  --color-text-muted: #94a3b8;
+  --color-text-inverse: #ffffff;
+  --color-accent-primary: #3b82f6;
+  --color-accent-secondary: #6366f1;
+  --color-accent-success: #10b981;
+  --color-accent-warning: #f59e0b;
+  --color-accent-error: #ef4444;
+  --color-interactive-hover: #f1f5f9;
+  --color-interactive-active: #e2e8f0;
+  --color-interactive-focus: #3b82f6;
+  --color-interactive-disabled: #cbd5e1;
+  
+  /* Semantic colors */
+  --color-header: #d8e4ff;
+  --color-bottom-nav: #d8e4ff;
+  --color-card: #f8fafc;
+  --color-button: #3b82f6;
+  --color-button-hover: #6366f1;
+  --color-text: #1e293b;
+  --color-text-secondary: #64748b;
+  --color-border: #e2e8f0;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+}
+
+/* Dark mode overrides */
+.dark {
+  --color-bg-primary: #0f172a;
+  --color-bg-secondary: #1e3a8a;
+  --color-bg-surface: #1e293b;
+  --color-bg-muted: #1e293b;
+  --color-border: #334155;
+  --color-border-secondary: #3b82f6;
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #94a3b8;
+  --color-text-inverse: #0f172a;
+  --color-accent-primary: #60a5fa;
+  --color-accent-secondary: #818cf8;
+  --color-accent-success: #34d399;
+  --color-accent-warning: #fbbf24;
+  --color-accent-error: #f87171;
+  --color-interactive-hover: #334155;
+  --color-interactive-active: #475569;
+  --color-interactive-focus: #60a5fa;
+  --color-interactive-disabled: #475569;
+  
+  /* Semantic colors */
+  --color-header: #1e3a8a;
+  --color-bottom-nav: #1e3a8a;
+  --color-card: #1e293b;
+  --color-button: #60a5fa;
+  --color-button-hover: #818cf8;
+  --color-text: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-border: #334155;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+}
+
+/* Smooth transitions for theme switching */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { MetaFunction } from "@remix-run/node";
 import { json, LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import prisma from "../prisma.server";
 import "../styles/scrollbar-hide.css";
 import { Link, useLocation } from "@remix-run/react";
+
 
 export const meta: MetaFunction = () => [
   { title: "Exam Prep Platform" },
@@ -25,6 +26,8 @@ export default function Index() {
   const { exams, testSeries, notes, heroSections } = useLoaderData<typeof loader>();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
   const location = useLocation();
 
   // Carousel auto-advance
@@ -36,21 +39,40 @@ export default function Index() {
     return () => clearInterval(interval);
   }, [heroSections.length]);
 
+  // Swipe functions
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) {
+      setHeroIndex((prev) => (prev + 1) % heroSections.length);
+    } else if (isRightSwipe) {
+      setHeroIndex((prev) => (prev - 1 + heroSections.length) % heroSections.length);
+    }
+
+    setTouchStart(0);
+    setTouchEnd(0);
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-[var(--color-bg-primary)]">
       {/* Header with search and menu */}
-      <header className="flex items-center justify-between px-4 py-3 border-b">
-        <button
-          className="text-2xl font-bold"
-          aria-label="Open menu"
-          onClick={() => {
-            console.log('Menu icon clicked');
-            setSidebarOpen(true);
-          }}
-        >
-          &#9776;
-        </button>
-        <div className="flex-1 mx-4">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-header)]">
+        <div className="flex items-center justify-center text-2xl font-bold text-blue-600">
+          +
+        </div>
+        <div className="flex-1 mx-4 flex items-center">
           <input
             type="text"
             placeholder="Search"
@@ -58,12 +80,25 @@ export default function Index() {
           />
         </div>
 
-        <Link to="/notifications" aria-label="Notifications" className="text-xl">
-          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link to="/notifications" aria-label="Notifications" className="flex items-center justify-center text-xl">
+            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            </svg>
+          </Link>
+          <button
+            className="flex items-center justify-center w-6 h-6"
+            aria-label="Open menu"
+            onClick={() => {
+              console.log('Menu icon clicked');
+              setSidebarOpen(true);
+            }}
+          >
+            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+              <path d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       {/* Sidebar and overlay */}
@@ -74,8 +109,8 @@ export default function Index() {
             onClick={() => setSidebarOpen(false)}
           />
           <aside
-            className="fixed top-0 left-0 h-full w-64 z-40 transition-transform duration-200 backdrop-blur-xl bg-white/60 border-r border-white/30 shadow-lg"
-            style={{ transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)" }}
+            className="fixed top-0 right-0 h-full w-64 z-40 transition-transform duration-200 backdrop-blur-xl bg-white/60 border-l border-white/30 shadow-lg"
+            style={{ transform: sidebarOpen ? "translateX(0)" : "translateX(100%)" }}
             aria-label="Sidebar"
             aria-modal="true"
             tabIndex={-1}
@@ -102,13 +137,16 @@ export default function Index() {
       )}
 
       {/* Hero image */}
-      <div className="w-full flex justify-center py-6">
+      <div className="w-full py-6 px-4">
         {heroSections.length > 0 && (
-          <div className="relative w-full max-w-xl">
-            <img src={heroSections[heroIndex].imageUrl} alt="Hero" className="w-full h-56 object-cover rounded-xl" />
-            <div className="absolute bottom-4 left-0 right-0 text-center text-white text-lg font-semibold bg-black bg-opacity-40 px-4 py-2 rounded-b-xl">
-              {heroSections[heroIndex].text}
-            </div>
+          <div 
+            className="relative w-full cursor-grab active:cursor-grabbing"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            <img src={heroSections[heroIndex].imageUrl} alt="Hero" className="w-full h-56 object-cover rounded-xl select-none" />
+
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
               {heroSections.map((_: any, idx: number) => (
                 <button key={idx} className={`w-2 h-2 rounded-full ${idx === heroIndex ? 'bg-white' : 'bg-gray-400'} transition`} onClick={() => setHeroIndex(idx)} aria-label={`Go to slide ${idx + 1}`}></button>
@@ -122,7 +160,7 @@ export default function Index() {
       <main className="flex-1 px-4 pb-24">
         {/* Exams */}
         <section className="mb-6">
-          <h2 className="text-xl font-bold mb-2">Exams</h2>
+          <h2 className="text-xl font-bold mb-2 text-[var(--color-text-primary)]">Exams</h2>
           <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
             {exams.map((exam) => (
               <Card key={exam.id} title={exam.title} img={exam.imageUrl || undefined} />
@@ -131,7 +169,7 @@ export default function Index() {
         </section>
         {/* Test Series */}
         <section className="mb-6">
-          <h2 className="text-xl font-bold mb-2">Test Series</h2>
+          <h2 className="text-xl font-bold mb-2 text-[var(--color-text-primary)]">Test Series</h2>
           <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
             {testSeries.map((ts) => (
               <Card key={ts.id} title={ts.title} img={ts.imageUrl || undefined} />
@@ -140,7 +178,7 @@ export default function Index() {
         </section>
         {/* Notes */}
         <section>
-          <h2 className="text-xl font-bold mb-2">Notes</h2>
+          <h2 className="text-xl font-bold mb-2 text-[var(--color-text-primary)]">Notes</h2>
           <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
             {notes.map((note) => (
               <Card key={note.id} title={note.title} img={note.imageUrl || undefined} />
@@ -155,11 +193,11 @@ export default function Index() {
 
 function Card({ title, img }: { title: string; img?: string }) {
   return (
-    <div className="min-w-[160px] max-w-[180px] bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 shadow-sm">
-      <div className="h-28 w-full bg-gray-200 flex items-center justify-center">
+    <div className="min-w-[160px] max-w-[180px] bg-[var(--color-card)] rounded-xl overflow-hidden flex-shrink-0 shadow-sm border border-[var(--color-border)]">
+      <div className="h-28 w-full bg-[var(--color-bg-muted)] flex items-center justify-center">
         <img src={img} alt={title} className="object-cover h-full w-full" />
       </div>
-      <div className="p-2 text-sm font-medium text-gray-800">{title}</div>
+      <div className="p-2 text-sm font-medium text-[var(--color-text-primary)]">{title}</div>
     </div>
   );
 }
