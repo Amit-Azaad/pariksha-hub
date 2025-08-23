@@ -109,18 +109,21 @@ export default function Index() {
             onClick={() => setSidebarOpen(false)}
           />
           <aside
-            className="fixed top-0 right-0 h-full w-64 z-40 transition-transform duration-200 backdrop-blur-xl bg-white/60 border-l border-white/30 shadow-lg"
-            style={{ transform: sidebarOpen ? "translateX(0)" : "translateX(100%)" }}
+            className="fixed top-0 right-0 h-full w-64 z-40 transition-transform duration-200 backdrop-blur-xl border-l border-white/30 shadow-lg"
+            style={{ 
+              transform: sidebarOpen ? "translateX(0)" : "translateX(100%)",
+              backgroundColor: 'var(--sidebar-bg)'
+            }}
             aria-label="Sidebar"
             aria-modal="true"
             tabIndex={-1}
           >
             <div className="flex items-center justify-between px-4 py-4 border-b border-white/30">
-              <span className="text-lg font-bold">Menu</span>
+              <span className="text-lg font-bold text-white">Menu</span>
               <button
                 onClick={() => setSidebarOpen(false)}
                 aria-label="Close sidebar"
-                className="text-2xl focus:outline-none"
+                className="text-2xl focus:outline-none text-white hover:text-white/80 transition-colors"
               >
                 &times;
               </button>
@@ -237,7 +240,7 @@ function SettingsIcon(props: any) {
 
 function NavLink({ icon, label, to }: { icon: React.ReactNode; label: string; to: string }) {
   return (
-    <Link to={to} className="flex items-center py-2 px-3 rounded-lg hover:bg-white/40 transition">
+    <Link to={to} className="flex items-center py-2 px-3 rounded-lg hover:bg-white/40 transition-colors text-white">
       {icon}
       <span>{label}</span>
     </Link>
