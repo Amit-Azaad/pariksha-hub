@@ -6,6 +6,7 @@
   "scripts": {
     "build": "remix vite:build",
     "dev": "remix vite:dev",
+    "dev:clean": "pkill -f 'remix vite:dev' 2>/dev/null || true && lsof -ti:5173 | xargs kill -9 2>/dev/null || true && lsof -ti:8002 | xargs kill -9 2>/dev/null || true && npm run dev",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "start": "remix-serve ./build/server/index.js",
     "typecheck": "tsc",
@@ -40,8 +41,7 @@
     "tsx": "^4.20.3",
     "typescript": "^5.1.6",
     "vite": "^6.0.0",
-    "vite-tsconfig-paths": "^4.2.1",
-    "workbox-cli": "^7.3.0"
+    "vite-tsconfig-paths": "^4.2.1"
   },
   "engines": {
     "node": ">=20.0.0"

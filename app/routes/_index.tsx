@@ -57,10 +57,11 @@ export default function Index() {
             className="w-full rounded-full border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <Link to="/profile" aria-label="Profile" className="text-xl">
+
+        <Link to="/notifications" aria-label="Notifications" className="text-xl">
           <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <circle cx="12" cy="8" r="4" />
-            <path d="M4 20c0-4 8-4 8-4s8 0 8 4" />
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
           </svg>
         </Link>
       </header>
@@ -89,13 +90,13 @@ export default function Index() {
                 &times;
               </button>
             </div>
-            <nav className="flex flex-col gap-2 p-4">
-              <NavLink icon={<HomeIcon className="w-5 h-5 mr-2" />} label="Home" />
-              <NavLink icon={<CoursesIcon className="w-5 h-5 mr-2" />} label="Courses" />
-              <NavLink icon={<DoubtsIcon className="w-5 h-5 mr-2" />} label="Doubts" />
-              <NavLink icon={<CommunityIcon className="w-5 h-5 mr-2" />} label="Community" />
-              <NavLink icon={<ProfileIcon className="w-5 h-5 mr-2" />} label="Profile" />
-            </nav>
+              <nav className="flex flex-col gap-2 p-4">
+                <NavLink icon={<CoursesIcon className="w-5 h-5 mr-2" />} label="Courses" to="/courses" />
+                <NavLink icon={<DoubtsIcon className="w-5 h-5 mr-2" />} label="Doubts" to="/doubts" />
+                <NavLink icon={<CommunityIcon className="w-5 h-5 mr-2" />} label="Community" to="/community" />
+                <NavLink icon={<ProfileIcon className="w-5 h-5 mr-2" />} label="Profile" to="/profile" />
+                <NavLink icon={<SettingsIcon className="w-5 h-5 mr-2" />} label="Settings" to="/settings" />
+              </nav>
           </aside>
         </>
       )}
@@ -123,8 +124,8 @@ export default function Index() {
         <section className="mb-6">
           <h2 className="text-xl font-bold mb-2">Exams</h2>
           <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
-            {exams.map((exam: { id: number; title: string; imageUrl?: string }) => (
-              <Card key={exam.id} title={exam.title} img={exam.imageUrl} />
+            {exams.map((exam) => (
+              <Card key={exam.id} title={exam.title} img={exam.imageUrl || undefined} />
             ))}
           </div>
         </section>
@@ -132,8 +133,8 @@ export default function Index() {
         <section className="mb-6">
           <h2 className="text-xl font-bold mb-2">Test Series</h2>
           <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
-            {testSeries.map((ts: { id: number; title: string; imageUrl?: string }) => (
-              <Card key={ts.id} title={ts.title} img={ts.imageUrl} />
+            {testSeries.map((ts) => (
+              <Card key={ts.id} title={ts.title} img={ts.imageUrl || undefined} />
             ))}
           </div>
         </section>
@@ -141,20 +142,13 @@ export default function Index() {
         <section>
           <h2 className="text-xl font-bold mb-2">Notes</h2>
           <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
-            {notes.map((note: { id: number; title: string; imageUrl?: string }) => (
-              <Card key={note.id} title={note.title} img={note.imageUrl} />
+            {notes.map((note) => (
+              <Card key={note.id} title={note.title} img={note.imageUrl || undefined} />
             ))}
           </div>
         </section>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around items-center h-16 z-50">
-        <NavItem icon={HomeIcon} label="Home" to="/" active={location.pathname === "/"} />
-        <NavItem icon={JobsIcon} label="Jobs" to="/jobs" active={location.pathname === "/jobs"} />
-        <NavItem icon={NotificationsIcon} label="Notifications" to="/notifications" active={location.pathname === "/notifications"} />
-        <NavItem icon={ProfileIcon} label="Profile" to="/profile" active={location.pathname === "/profile"} />
-      </nav>
     </div>
   );
 }
@@ -194,13 +188,21 @@ function CommunityIcon(props: any) {
 function ProfileIcon(props: any) {
   return <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M6 20v-2a4 4 0 0 1 8 0v2" /></svg>;
 }
-
-function NavLink({ icon, label }: { icon: React.ReactNode; label: string }) {
+function SettingsIcon(props: any) {
   return (
-    <a href="#" className="flex items-center py-2 px-3 rounded-lg hover:bg-white/40 transition">
+    <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 8.6 15a1.65 1.65 0 0 0-1.82-.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 15.4 9a1.65 1.65 0 0 0 1.82.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 15z" />
+    </svg>
+  );
+}
+
+function NavLink({ icon, label, to }: { icon: React.ReactNode; label: string; to: string }) {
+  return (
+    <Link to={to} className="flex items-center py-2 px-3 rounded-lg hover:bg-white/40 transition">
       {icon}
       <span>{label}</span>
-    </a>
+    </Link>
   );
 }
 

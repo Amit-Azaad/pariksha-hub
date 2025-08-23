@@ -1,11 +1,46 @@
-import { precacheAndRoute } from 'workbox-precaching';
-
-precacheAndRoute([{"revision":"eac0ff85f821792198cec0a76698ca3f","url":"favicon.ico"},{"revision":"01baf8e84451c2bdf8d2b814c1af7da3","url":"logo-dark.png"},{"revision":"1cea347c5ec100cc3389e28f75a04241","url":"logo-light.png"},{"revision":"762149415d16e08f162b5fdfde0b6b5b","url":"manifest.json"}] || []);
+// Service Worker for Exam Prep Platform
+const CACHE_NAME = 'exam-prep-v1';
+const urlsToCache = [
+  '/',
+  '/favicon.ico',
+  '/logo-dark.png',
+  '/logo-light.png',
+  '/manifest.json'
+];
 
 self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Opened cache');
+        return cache.addAll(urlsToCache);
+      })
+  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
   clients.claim();
+});
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        // Return cached version or fetch from network
+        return response || fetch(event.request);
+      })
+  );
 }); 

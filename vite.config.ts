@@ -21,4 +21,20 @@ export default defineConfig({
     }),
     tsconfigPaths(),
   ],
+  server: {
+    port: 5173,
+    strictPort: true,
+    hmr: {
+      port: 5173,
+      protocol: 'ws',
+      host: 'localhost',
+    },
+    watch: {
+      usePolling: false,
+    },
+  },
+  preview: {
+    port: 5173,
+    strictPort: true,
+  },
 });

@@ -1,9 +1,9 @@
 import type { MetaFunction } from "@remix-run/node";
 import { Link } from "@remix-run/react";
 
-export const meta: MetaFunction = () => [{ title: "Jobs | Pariksha Hub" }];
+export const meta: MetaFunction = () => [{ title: "Courses | Pariksha Hub" }];
 
-export default function JobsPage() {
+export default function CoursesPage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Back Navigation */}
@@ -21,9 +21,9 @@ export default function JobsPage() {
       
       {/* Page Content */}
       <div className="flex flex-col items-center justify-center flex-1">
-        <h1 className="text-2xl font-bold mb-4">Jobs</h1>
-        <p className="text-gray-600">Find the latest job opportunities here.</p>
+        <h1 className="text-2xl font-bold mb-4">Courses</h1>
+        <p className="text-gray-600">Explore our comprehensive exam preparation courses.</p>
       </div>
     </div>
   );
-} 
+}
