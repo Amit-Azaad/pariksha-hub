@@ -57,7 +57,7 @@ export const darkModeColors = {
   
   // 30% - Secondary/Accent colors
   secondary: {
-    background: '#1e3a8a',          // Darker version of your color
+    background: '#0f172a',          // Darker version of your color
     surface: '#1e40af',             // Secondary surfaces
     border: '#3b82f6',              // Secondary borders
     text: '#cbd5e1',                // Secondary text
