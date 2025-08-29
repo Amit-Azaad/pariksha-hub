@@ -32,7 +32,7 @@ export const links: LinksFunction = () => [
 export function meta() {
   return [
     { title: "Exam Prep Platform" },
-    { name: "viewport", content: "width=device-width, initial-scale=1" },
+    { name: "viewport", content: "width=device-width, initial-scale=1, user-scalable=no" },
     { name: "theme-color", content: "#2563eb" },
     { name: "description", content: "A PWA for exam aspirants to prepare for competitive exams." },
     { name: "apple-mobile-web-app-capable", content: "yes" },
@@ -41,24 +41,42 @@ export function meta() {
     { name: "mobile-web-app-capable", content: "yes" },
     { name: "msapplication-TileColor", content: "#2563eb" },
     { name: "msapplication-config", content: "/browserconfig.xml" },
+    { name: "application-name", content: "Exam Prep Platform" },
+    { name: "msapplication-TileImage", content: "/logo-light.png" },
+    { name: "msapplication-square150x150logo", content: "/logo-light.png" },
+    { name: "msapplication-wide310x150logo", content: "/logo-light.png" },
+    { name: "msapplication-square310x310logo", content: "/logo-light.png" },
   ];
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  // Register service worker for PWA functionality
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then((registration) => {
-            console.log('SW registered: ', registration);
-          })
-          .catch((registrationError) => {
-            console.log('SW registration failed: ', registrationError);
-          });
-      });
-    }
-  }, []);
+      // Register service worker for PWA functionality
+    useEffect(() => {
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        const registerSW = async () => {
+          try {
+            const registration = await navigator.serviceWorker.register('/service-worker.js');
+            console.log('Service Worker registered successfully:', registration);
+            
+            // Check if there's an update available
+            registration.addEventListener('updatefound', () => {
+              console.log('Service Worker update found');
+            });
+          } catch (registrationError) {
+            console.error('Service Worker registration failed:', registrationError);
+          }
+        };
+
+        // Register immediately if page is already loaded
+        if (document.readyState === 'complete') {
+          registerSW();
+        } else {
+          window.addEventListener('load', registerSW);
+        }
+      } else {
+        console.log('Service Worker not supported');
+      }
+    }, []);
 
   return (
     <html lang="en">

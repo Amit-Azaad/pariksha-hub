@@ -1,6 +1,7 @@
 import React from "react";
 import { useLocation, Link } from "@remix-run/react";
 import PWAInstallButton from "./PWAInstallButton";
+import PWADebugInfo from "./PWADebugInfo";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -8,6 +9,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
+      
+      {/* PWA Debug Info (only in development) */}
+      {process.env.NODE_ENV === 'development' && <PWADebugInfo />}
       
       {/* PWA Install Button */}
       <PWAInstallButton />

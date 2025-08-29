@@ -11,6 +11,7 @@ export default function PWAInstallButton() {
   const [isVisible, setIsVisible] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const { theme } = useTheme();
 
   useEffect(() => {
@@ -19,60 +20,119 @@ export default function PWAInstallButton() {
       return;
     }
 
+    console.log('PWA Install Button: useEffect running');
+
+    // Check if it's a mobile device
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+      console.log('PWA Install Button: Mobile device detected:', isMobileDevice, 'User Agent:', userAgent);
+      setIsMobile(isMobileDevice);
+      return isMobileDevice;
+    };
+
+    const mobile = checkMobile();
+
     // Check if app is already installed
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
     if (isStandalone) {
+      console.log('PWA Install Button: App is already installed in standalone mode');
       return;
     }
 
     // Check if user has dismissed the install prompt before
     const hasDismissed = localStorage.getItem('pwa-install-dismissed');
     if (hasDismissed) {
+      console.log('PWA Install Button: User previously dismissed install prompt');
       return;
     }
 
     function beforeInstallPromptHandler(e: Event) {
+      console.log('beforeinstallprompt event fired');
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setIsVisible(true);
       
-      // Show banner after a delay to not be intrusive
+      // Show banner immediately for mobile devices, with shorter delay for desktop
+      const delay = mobile ? 1000 : 3000;
       setTimeout(() => {
         setShowBanner(true);
-      }, 3000);
+        console.log('Showing install banner');
+      }, delay);
     }
 
+    // Also check for appinstalled event
+    function appInstalledHandler() {
+      console.log('App was installed');
+      setIsVisible(false);
+      setShowBanner(false);
+    }
+
+    // Listen for the beforeinstallprompt event
     window.addEventListener("beforeinstallprompt", beforeInstallPromptHandler);
+    window.addEventListener("appinstalled", appInstalledHandler);
+
+    // For mobile devices, also check if we can show a manual install prompt
+    if (mobile) {
+      // Check if the app meets PWA criteria
+      const checkPWACriteria = () => {
+        // Basic PWA criteria check
+        const hasManifest = !!document.querySelector('link[rel="manifest"]');
+        const hasServiceWorker = 'serviceWorker' in navigator;
+        const isHTTPS = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+        
+        console.log('PWA Criteria:', { hasManifest, hasServiceWorker, isHTTPS });
+        
+        if (hasManifest && hasServiceWorker && isHTTPS) {
+          // If we meet PWA criteria but no beforeinstallprompt event, show manual install option
+          setTimeout(() => {
+            if (!isVisible) {
+              console.log('Showing manual install option for mobile');
+              setIsVisible(true);
+              setShowBanner(true);
+            }
+          }, 2000);
+        }
+      };
+
+      // Check after a short delay
+      setTimeout(checkPWACriteria, 1000);
+    }
 
     return () => {
       window.removeEventListener("beforeinstallprompt", beforeInstallPromptHandler);
+      window.removeEventListener("appinstalled", appInstalledHandler);
     };
-  }, []);
+  }, [isVisible]);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) {
-      return;
-    }
-
-    setIsInstalling(true);
-    try {
-      deferredPrompt.prompt();
-      const choiceResult = await deferredPrompt.userChoice;
-      
-      if (choiceResult.outcome === "accepted") {
-        console.log("User accepted the install prompt");
-        // Hide the button after successful installation
-        setIsVisible(false);
-        setShowBanner(false);
-      } else {
-        console.log("User dismissed the install prompt");
+    if (deferredPrompt) {
+      // Use the native install prompt if available
+      setIsInstalling(true);
+      try {
+        deferredPrompt.prompt();
+        const choiceResult = await deferredPrompt.userChoice;
+        
+        if (choiceResult.outcome === "accepted") {
+          console.log("User accepted the install prompt");
+          setIsVisible(false);
+          setShowBanner(false);
+        } else {
+          console.log("User dismissed the install prompt");
+        }
+        
+        setDeferredPrompt(null);
+      } catch (error) {
+        console.error("Error during installation:", error);
+      } finally {
+        setIsInstalling(false);
       }
-      
-      setDeferredPrompt(null);
-    } catch (error) {
-      console.error("Error during installation:", error);
-    } finally {
-      setIsInstalling(false);
+    } else {
+      // Fallback for manual installation
+      if (isMobile) {
+        // Show instructions for manual installation
+        alert('To install this app:\n\nAndroid: Tap the menu (⋮) → "Add to Home screen"\niOS: Tap the share button → "Add to Home Screen"');
+      }
     }
   };
 
@@ -85,6 +145,7 @@ export default function PWAInstallButton() {
     }
   };
 
+  // Don't show if not visible or if banner is hidden
   if (!isVisible || !showBanner) {
     return null;
   }
@@ -115,7 +176,10 @@ export default function PWAInstallButton() {
               Install Exam Prep Platform
             </h3>
             <p className="text-xs text-[var(--color-text-secondary)] mb-3">
-              Get quick access to your study materials and quizzes. Works offline too!
+              {isMobile 
+                ? "Get quick access from your home screen. Works offline too!"
+                : "Get quick access to your study materials and quizzes. Works offline too!"
+              }
             </p>
 
             {/* Action Buttons */}
@@ -140,7 +204,7 @@ export default function PWAInstallButton() {
                     Installing...
                   </span>
                 ) : (
-                  'Install App'
+                  deferredPrompt ? 'Install App' : 'Install Instructions'
                 )}
               </button>
 
