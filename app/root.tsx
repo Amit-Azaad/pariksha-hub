@@ -23,7 +23,7 @@ export const links: LinksFunction = () => [
     href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
   },
   { rel: "stylesheet", href: tailwindStylesheetUrl },
-  { rel: "stylesheet", href: "./styles/theme.css" },
+  { rel: "stylesheet", href: "/styles/theme.css" },
   { rel: "manifest", href: "/manifest.json" },
   { rel: "icon", href: "/favicon.ico" },
   { rel: "apple-touch-icon", href: "/logo-light.png" },
@@ -50,8 +50,8 @@ export function meta() {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
-      // Register service worker for PWA functionality
-    useEffect(() => {
+  // Register service worker for PWA functionality
+  useEffect(() => {
       if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
         const registerSW = async () => {
           try {
@@ -102,6 +102,26 @@ export default function App() {
         <Outlet />
       </AppLayout>
     </ThemeProvider>
+  );
+}
+
+// Error boundary to catch loader failures
+export function ErrorBoundary() {
+  return (
+    <html>
+      <head>
+        <title>Error</title>
+        <Meta />
+        <Links />
+      </head>
+      <body>
+        <div className="flex flex-col items-center justify-center min-h-screen">
+          <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
+          <p className="text-gray-600">Please try refreshing the page.</p>
+        </div>
+        <Scripts />
+      </body>
+    </html>
   );
 }
 

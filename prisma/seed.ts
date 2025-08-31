@@ -13,24 +13,37 @@ async function main() {
   const user1 = await prisma.user.create({
     data: {
       email: 'student1@example.com',
-      password: 'password123',
       name: 'Rahul Kumar',
+      role: 'USER',
+      isEmailVerified: true,
     },
   });
 
   const user2 = await prisma.user.create({
     data: {
       email: 'student2@example.com',
-      password: 'password123',
       name: 'Priya Sharma',
+      role: 'USER',
+      isEmailVerified: true,
     },
   });
 
   const user3 = await prisma.user.create({
     data: {
       email: 'student3@example.com',
-      password: 'password123',
       name: 'Amit Patel',
+      role: 'USER',
+      isEmailVerified: true,
+    },
+  });
+
+  // Create an admin user
+  const adminUser = await prisma.user.create({
+    data: {
+      email: 'admin@parikshahub.com',
+      name: 'Admin User',
+      role: 'ADMIN',
+      isEmailVerified: true,
     },
   });
 

@@ -8,22 +8,62 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {children}
+      {/* Right Sidebar Navigation (desktop - width > 528px) */}
+      <nav className="hidden lg:flex fixed right-0 top-0 h-full w-20 bg-[var(--color-bottom-nav)] border-l border-[var(--color-border)] flex-col justify-start items-center pt-8 z-50" style={{ display: 'none' }}>
+        <div className="flex flex-col items-center space-y-8">
+          <NavItem icon={HomeIcon} label="Home" to="/" active={location.pathname === "/"} />
+          <NavItem icon={JobsIcon} label="Jobs" to="/jobs" active={location.pathname === "/jobs"} />
+          <NavItem icon={QuizIcon} label="Quiz" to="/quiz" active={location.pathname === "/quiz"} />
+          <NavItem icon={PYQIcon} label="PYQ's" to="/pyq" active={location.pathname === "/pyq"} />
+          <NavItem icon={CAIcon} label="CA" to="/ca" active={location.pathname === "/ca"} />
+        </div>
+      </nav>
+
+      {/* Main content with right margin on desktop */}
+      <div className="lg:mr-20" style={{ marginRight: '0' }}>
+        {children}
+      </div>
       
       {/* PWA Debug Info (only in development) */}
-      {process.env.NODE_ENV === 'development' && <PWADebugInfo />}
+      {/* {process.env.NODE_ENV === 'development' && <PWADebugInfo />} */}
       
       {/* PWA Install Button */}
       <PWAInstallButton />
       
-      {/* Bottom Navigation (global) */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[var(--color-bottom-nav)] border-t border-[var(--color-border)] flex justify-around items-center h-16 z-50">
+      {/* Bottom Navigation (mobile - width <= 528px) */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[var(--color-bottom-nav)] border-t border-[var(--color-border)] flex justify-around items-center h-16 z-50" style={{ display: 'flex' }}>
         <NavItem icon={HomeIcon} label="Home" to="/" active={location.pathname === "/"} />
         <NavItem icon={JobsIcon} label="Jobs" to="/jobs" active={location.pathname === "/jobs"} />
         <NavItem icon={QuizIcon} label="Quiz" to="/quiz" active={location.pathname === "/quiz"} />
         <NavItem icon={PYQIcon} label="PYQ's" to="/pyq" active={location.pathname === "/pyq"} />
         <NavItem icon={CAIcon} label="CA" to="/ca" active={location.pathname === "/ca"} />
       </nav>
+
+      {/* Custom CSS for 528px breakpoint */}
+      <style>{`
+        @media (min-width: 528px) {
+          .lg\\:flex {
+            display: flex !important;
+          }
+          .lg\\:hidden {
+            display: none !important;
+          }
+          .lg\\:mr-20 {
+            margin-right: 5rem !important;
+          }
+        }
+        @media (max-width: 527px) {
+          .lg\\:flex {
+            display: none !important;
+          }
+          .lg\\:hidden {
+            display: flex !important;
+          }
+          .lg\\:mr-20 {
+            margin-right: 0 !important;
+          }
+        }
+      `}</style>
     </>
   );
 }

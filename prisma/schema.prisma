@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,23 +8,27 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  // Relations
-  notes     Note[]
+  id              Int           @id @default(autoincrement())
+  email           String        @unique
+  name            String?
+  googleId        String?       @unique
+  avatar          String?
+  role            UserRole      @default(USER)
+  isEmailVerified Boolean       @default(false)
+  lastLoginAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  notes           Note[]
+  quizzes         Quiz[]
+  quizAttempts    QuizAttempt[]
 }
 
 model Exam {
-  id        Int      @id @default(autoincrement())
-  title     String
-  imageUrl  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  // Relations
+  id         Int          @id @default(autoincrement())
+  title      String
+  imageUrl   String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
   testSeries TestSeries[]
 }
 
@@ -41,8 +39,9 @@ model TestSeries {
   examId    Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  // Relations
   exam      Exam     @relation(fields: [examId], references: [id])
+
+  @@index([examId], map: "TestSeries_examId_fkey")
 }
 
 model Note {
@@ -52,8 +51,9 @@ model Note {
   userId    Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  // Relations
   user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "Note_userId_fkey")
 }
 
 model HeroSection {
@@ -62,4 +62,113 @@ model HeroSection {
   text      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Question {
+  id           Int                   @id @default(autoincrement())
+  questionType String
+  category     String?
+  difficulty   String?
+  isActive     Boolean               @default(true)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  attempts     QuestionAttempt[]
+  tags         QuestionTag[]
+  translations QuestionTranslation[]
+  quizzes      QuizQuestion[]
+}
+
+model QuestionTag {
+  id         Int      @id @default(autoincrement())
+  questionId Int
+  tag        String
+  question   Question @relation(fields: [questionId], references: [id])
+
+  @@unique([questionId, tag])
+}
+
+model QuestionTranslation {
+  id               Int      @id @default(autoincrement())
+  questionId       Int
+  language         String
+  questionText     String
+  explanation      String?
+  optionA          String
+  optionB          String
+  optionC          String
+  optionD          String
+  correctOptionKey String
+  question         Question @relation(fields: [questionId], references: [id])
+
+  @@unique([questionId, language])
+}
+
+model Quiz {
+  id          Int            @id @default(autoincrement())
+  title       String
+  description String?
+  type        String?
+  timeLimit   Int?
+  isActive    Boolean        @default(true)
+  isPublic    Boolean        @default(true)
+  createdBy   Int?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  creator     User?          @relation(fields: [createdBy], references: [id])
+  attempts    QuizAttempt[]
+  questions   QuizQuestion[]
+
+  @@index([createdBy], map: "Quiz_createdBy_fkey")
+}
+
+model QuizQuestion {
+  id         Int      @id @default(autoincrement())
+  quizId     Int
+  questionId Int
+  order      Int
+  points     Int      @default(1)
+  question   Question @relation(fields: [questionId], references: [id])
+  quiz       Quiz     @relation(fields: [quizId], references: [id])
+
+  @@unique([quizId, questionId])
+  @@index([questionId], map: "QuizQuestion_questionId_fkey")
+}
+
+model QuizAttempt {
+  id               Int               @id @default(autoincrement())
+  quizId           Int
+  userId           Int?
+  guestId          String?
+  score            Int?
+  totalPoints      Int
+  timeTaken        Int?
+  startedAt        DateTime          @default(now())
+  completedAt      DateTime?
+  isCompleted      Boolean           @default(false)
+  questionAttempts QuestionAttempt[]
+  quiz             Quiz              @relation(fields: [quizId], references: [id])
+  user             User?             @relation(fields: [userId], references: [id])
+
+  @@index([quizId], map: "QuizAttempt_quizId_fkey")
+  @@index([userId], map: "QuizAttempt_userId_fkey")
+}
+
+model QuestionAttempt {
+  id             Int         @id @default(autoincrement())
+  quizAttemptId  Int
+  questionId     Int
+  selectedOption String?
+  isCorrect      Boolean?
+  timeSpent      Int?
+  answeredAt     DateTime    @default(now())
+  question       Question    @relation(fields: [questionId], references: [id])
+  quizAttempt    QuizAttempt @relation(fields: [quizAttemptId], references: [id])
+
+  @@index([questionId], map: "QuestionAttempt_questionId_fkey")
+  @@index([quizAttemptId], map: "QuestionAttempt_quizAttemptId_fkey")
+}
+
+enum UserRole {
+  USER
+  ADMIN
 }

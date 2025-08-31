@@ -1,11 +1,10 @@
-import { useEffect, useState, useRef } from "react";
-import type { MetaFunction } from "@remix-run/node";
-import { json, LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
-import prisma from "../prisma.server";
-import "../styles/scrollbar-hide.css";
-import { Link, useLocation } from "@remix-run/react";
-
+import { useEffect, useState } from "react";
+import type { MetaFunction, LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import { useLoaderData, Link, useRevalidator } from "@remix-run/react";
+import SignInModal from "../components/auth/SignInModal";
+import { useSignInModal } from "../hooks/useSignInModal";
+import { signOut } from "../utils/oauth-utils";
 
 export const meta: MetaFunction = () => [
   { title: "Exam Prep Platform" },
@@ -13,22 +12,95 @@ export const meta: MetaFunction = () => [
 ];
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const [exams, testSeries, notes, heroSections] = await Promise.all([
-    prisma.exam.findMany({ orderBy: { id: "asc" }, take: 10 }),
-    prisma.testSeries.findMany({ orderBy: { id: "asc" }, take: 10 }),
-    prisma.note.findMany({ orderBy: { id: "asc" }, take: 10 }),
-    prisma.heroSection.findMany({ orderBy: { id: "asc" } }),
-  ]);
-  return json({ exams, testSeries, notes, heroSections });
+  try {
+    // Get Prisma client
+    const { prisma } = await import("../lib/prisma.server");
+    
+    const [exams, testSeries, notes, heroSections] = await Promise.all([
+      prisma.exam.findMany({ orderBy: { id: "asc" }, take: 10 }),
+      prisma.testSeries.findMany({ orderBy: { id: "asc" }, take: 10 }),
+      prisma.note.findMany({ orderBy: { id: "asc" }, take: 10 }),
+      prisma.heroSection.findMany({ orderBy: { id: "asc" } }),
+    ]);
+
+    // Get user from session
+    let user = null;
+    try {
+      const { sessionStorage } = await import("../lib/oauth.server");
+      const cookieHeader = request.headers.get("Cookie");
+      const session = await sessionStorage.getSession(cookieHeader);
+      const userId = session.get("userId");
+      
+      if (userId) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: userId },
+        });
+        
+        if (dbUser) {
+          user = {
+            id: dbUser.id,
+            email: dbUser.email,
+            name: dbUser.name,
+            role: dbUser.role,
+            avatar: dbUser.avatar,
+          };
+        }
+      }
+    } catch (error) {
+      console.error("Session error:", error);
+    }
+
+    return json(
+      { exams, testSeries, notes, heroSections, user },
+      {
+        headers: {
+          "Cache-Control": "no-cache, must-revalidate"
+        }
+      }
+    );
+    
+  } catch (error) {
+    console.error("Loader error:", error);
+    return json({ 
+      exams: [], 
+      testSeries: [], 
+      notes: [], 
+      heroSections: [],
+      user: null,
+      error: "Failed to load data"
+    });
+  }
 }
 
 export default function Index() {
-  const { exams, testSeries, notes, heroSections } = useLoaderData<typeof loader>();
+  const { exams, testSeries, notes, heroSections, user } = useLoaderData<typeof loader>();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
-  const location = useLocation();
+  const { isOpen, modalConfig, openModal, closeModal } = useSignInModal();
+
+
+
+  // Clean session recovery using Remix's useRevalidator
+  const [clientUser, setClientUser] = useState(user);
+  const revalidator = useRevalidator();
+  
+  useEffect(() => {
+    // On soft refresh, use Remix's revalidator to force fresh data
+    if (!user && exams?.length > 0) {
+      revalidator.revalidate();
+      return;
+    }
+    
+    // Update client user when server user is available
+    if (user) {
+      setClientUser(user);
+    }
+  }, [user, exams, revalidator]);
+  
+  // Use clientUser if available, fallback to server user
+  const displayUser = clientUser || user;
 
   // Carousel auto-advance
   useEffect(() => {
@@ -66,101 +138,129 @@ export default function Index() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--color-bg-primary)]">
-      {/* Header with search and menu */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-header)]">
-        <div className="flex items-center justify-center text-2xl font-bold text-blue-600">
-          +
+                <div className="min-h-screen flex flex-col bg-[var(--color-bg-primary)]">
+        {/* Header */}
+        <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-header)]">
+          <div className="flex items-center justify-center w-10 h-10 bg-transparent hover:bg-[var(--color-interactive-hover)] dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer">
+          <img 
+            src="/images/LearnPlusFinalLogo.png" 
+            alt="LEARN PLUS Logo" 
+            className="w-10 h-10 object-contain"
+          />
         </div>
         <div className="flex-1 mx-4 flex items-center">
           <input
             type="text"
             placeholder="Search"
-            className="w-full rounded-full border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-full border px-4 py-2 h-10 bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] border-[var(--color-border)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)] focus:border-[var(--color-accent-primary)] transition-colors"
           />
         </div>
 
         <div className="flex items-center gap-3">
-          <Link to="/notifications" aria-label="Notifications" className="flex items-center justify-center text-xl">
-            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <Link to="/notifications" aria-label="Notifications" className="flex items-center justify-center w-8 h-8 hover:bg-[var(--color-interactive-hover)] dark:hover:bg-white/20 rounded-lg transition-colors">
+            <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-[var(--color-text-primary)]">
+              <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
           </Link>
-          <button
-            className="flex items-center justify-center w-6 h-6"
+          
+          {displayUser ? (
+            <div className="flex items-center space-x-3">
+              {/* User Avatar */}
+              {displayUser.avatar && displayUser.avatar.trim() !== '' ? (
+                <img
+                  className="h-8 w-8 rounded-full border-2 border-gray-200 object-cover"
+                  src={displayUser.avatar}
+                  alt={displayUser.name || displayUser.email}
+                  onError={(e) => {
+                    // Fallback to initials if image fails to load
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              
+              {/* Fallback Avatar with Initials */}
+              <div 
+                className={`h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center border-2 border-gray-200 ${
+                  displayUser.avatar && displayUser.avatar.trim() !== '' ? 'hidden' : ''
+                }`}
+              >
+                <span className="text-white text-xs font-medium">
+                  {displayUser.name ? displayUser.name.charAt(0).toUpperCase() : displayUser.email.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              
+              {/* User Info (hidden on mobile) */}
+              <div className="hidden md:block text-left">
+                <p className="text-sm font-medium text-gray-700">
+                  {displayUser.name || 'User'}
+                </p>
+                <p className="text-xs text-gray-500">{displayUser.email}</p>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => openModal()}
+              className="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+            >
+              Sign In
+            </button>
+          )}
+          
+          <button 
+            className="flex items-center justify-center w-8 h-8 hover:bg-[var(--color-interactive-hover)] dark:hover:bg-white/20 rounded-lg transition-colors" 
             aria-label="Open menu"
-            onClick={() => {
-              console.log('Menu icon clicked');
-              setSidebarOpen(true);
-            }}
+            onClick={() => setSidebarOpen(true)}
           >
-            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+            <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-[var(--color-text-primary)]">
               <path d="M3 12h18M3 6h18M3 18h18" />
             </svg>
           </button>
         </div>
       </header>
 
-      {/* Sidebar and overlay */}
-      {sidebarOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-30 bg-black bg-opacity-40"
-            onClick={() => setSidebarOpen(false)}
-          />
-          <aside
-            className="fixed top-0 right-0 h-full w-64 z-40 transition-transform duration-200 backdrop-blur-xl border-l border-white/30 shadow-lg"
-            style={{ 
-              transform: sidebarOpen ? "translateX(0)" : "translateX(100%)",
-              backgroundColor: 'var(--sidebar-bg)'
-            }}
-            aria-label="Sidebar"
-            aria-modal="true"
-            tabIndex={-1}
-          >
-            <div className="flex items-center justify-between px-4 py-4 border-b border-white/30">
-              <span className="text-lg font-bold text-white">Menu</span>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                aria-label="Close sidebar"
-                className="text-2xl focus:outline-none text-white hover:text-white/80 transition-colors"
-              >
-                &times;
-              </button>
-            </div>
-              <nav className="flex flex-col gap-2 p-4">
-                <NavLink icon={<CoursesIcon className="w-5 h-5 mr-2" />} label="Courses" to="/courses" />
-                <NavLink icon={<DoubtsIcon className="w-5 h-5 mr-2" />} label="Doubts" to="/doubts" />
-                <NavLink icon={<CommunityIcon className="w-5 h-5 mr-2" />} label="Community" to="/community" />
-                <NavLink icon={<ProfileIcon className="w-5 h-5 mr-2" />} label="Profile" to="/profile" />
-                <NavLink icon={<SettingsIcon className="w-5 h-5 mr-2" />} label="Settings" to="/settings" />
-              </nav>
-          </aside>
-        </>
-      )}
-
-      {/* Hero image */}
-      <div className="w-full py-6 px-4">
-        {heroSections.length > 0 && (
-          <div 
-            className="relative w-full cursor-grab active:cursor-grabbing"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-          >
-            <img src={heroSections[heroIndex].imageUrl} alt="Hero" className="w-full h-56 object-cover rounded-xl select-none" />
-
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
-              {heroSections.map((_: any, idx: number) => (
-                <button key={idx} className={`w-2 h-2 rounded-full ${idx === heroIndex ? 'bg-white' : 'bg-gray-400'} transition`} onClick={() => setHeroIndex(idx)} aria-label={`Go to slide ${idx + 1}`}></button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Main content */}
       <main className="flex-1 px-4 pb-24">
+        {/* Hero Section */}
+        {heroSections.length > 0 && (
+          <section className="mb-8 relative overflow-hidden rounded-xl">
+            <div 
+              className="relative cursor-grab active:cursor-grabbing"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              <img
+                src={heroSections[heroIndex]?.imageUrl}
+                alt="Hero"
+                className="w-full h-48 object-cover select-none"
+              />
+              <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                <p className="text-white text-xl font-semibold text-center px-4">
+                  {heroSections[heroIndex]?.text}
+                </p>
+              </div>
+              
+              {/* Carousel indicators */}
+              {heroSections.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                  {heroSections.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setHeroIndex(index)}
+                      className={`w-2 h-2 rounded-full ${
+                        index === heroIndex ? 'bg-white' : 'bg-white bg-opacity-50'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
         {/* Exams */}
         <section className="mb-6">
           <h2 className="text-xl font-bold mb-2 text-[var(--color-text-primary)]">Exams</h2>
@@ -170,6 +270,7 @@ export default function Index() {
             ))}
           </div>
         </section>
+        
         {/* Test Series */}
         <section className="mb-6">
           <h2 className="text-xl font-bold mb-2 text-[var(--color-text-primary)]">Test Series</h2>
@@ -179,6 +280,7 @@ export default function Index() {
             ))}
           </div>
         </section>
+        
         {/* Notes */}
         <section>
           <h2 className="text-xl font-bold mb-2 text-[var(--color-text-primary)]">Notes</h2>
@@ -190,6 +292,150 @@ export default function Index() {
         </section>
       </main>
 
+      {/* Sidebar and overlay */}
+      {sidebarOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-30 bg-black bg-opacity-40"
+            onClick={() => setSidebarOpen(false)}
+          />
+          <aside
+            className="fixed top-0 right-0 h-full w-80 z-40 transition-transform duration-200 backdrop-blur-xl border-l border-white/30 shadow-lg"
+            style={{ 
+              transform: sidebarOpen ? "translateX(0)" : "translateX(100%)",
+              backgroundColor: 'var(--sidebar-bg)'
+            }}
+            aria-label="Sidebar"
+            aria-modal="true"
+            tabIndex={-1}
+          >
+            {/* User Profile Section */}
+            <div className="px-4 py-4 border-b border-white/30">
+              {displayUser ? (
+                <div className="flex items-center space-x-3 mb-4">
+                  {displayUser.avatar ? (
+                    <img
+                      className="h-10 w-10 rounded-full"
+                      src={displayUser.avatar}
+                      alt={displayUser.name || displayUser.email}
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">
+                        {displayUser.name ? displayUser.name.charAt(0).toUpperCase() : displayUser.email.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">
+                      {displayUser.name || 'User'}
+                    </p>
+                    <p className="text-xs text-[var(--color-text-secondary)] truncate">{displayUser.email}</p>
+                    <p className="text-xs text-[var(--color-accent-primary)] font-medium">
+                      {displayUser.role === 'ADMIN' ? 'Administrator' : 'User'}
+                    </p>
+                  </div>
+                  {/* Close Button */}
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setSidebarOpen(false)}
+                      aria-label="Close sidebar"
+                      className="text-2xl focus:outline-none text-[var(--color-text-primary)] hover:text-[var(--color-text-secondary)] transition-colors"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div className="text-center py-4 flex-1">
+                    <p className="text-[var(--color-text-secondary)] text-sm mb-3">Not signed in</p>
+                    <button
+                      onClick={() => {
+                        openModal();
+                        setSidebarOpen(false);
+                      }}
+                      className="px-4 py-2 bg-[var(--color-accent-primary)] text-white rounded-lg hover:bg-[var(--color-accent-secondary)] text-sm"
+                    >
+                      Sign In
+                    </button>
+                  </div>
+                  {/* Close Button for Guest Users */}
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setSidebarOpen(false)}
+                      aria-label="Close sidebar"
+                      className="text-2xl focus:outline-none text-[var(--color-text-primary)] hover:text-[var(--color-text-secondary)] transition-colors"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Navigation Menu */}
+            <nav className="flex flex-col gap-1 p-4">
+              {displayUser ? (
+                <>
+                  {/* User-specific navigation */}
+                  <NavLink icon={<ProfileIcon className="w-5 h-5 mr-3" />} label="Profile Settings" to="/auth/profile" />
+                  <NavLink icon={<SettingsIcon className="w-5 h-5 mr-3" />} label="Settings" to="/settings" />
+                  
+                  {/* Admin-specific navigation */}
+                  {displayUser.role === 'ADMIN' && (
+                    <NavLink 
+                      icon={<AdminIcon className="w-5 h-5 mr-3" />} 
+                      label="Admin Dashboard" 
+                      to="/admin/dashboard" 
+                    />
+                  )}
+                  
+                  {/* Divider */}
+                  <div className="border-t border-[var(--color-border)] my-2"></div>
+                  
+                  {/* Logout */}
+                  <button
+                    onClick={async () => {
+                      await signOut();
+                      setSidebarOpen(false);
+                    }}
+                    className="flex items-center py-2 px-3 rounded-lg hover:bg-[var(--color-interactive-hover)] transition-colors text-[var(--color-text-primary)] text-left w-full"
+                  >
+                    <LogoutIcon className="w-5 h-5 mr-3" />
+                    <span>Sign Out</span>
+                  </button>
+                  
+                  {/* Divider */}
+                  <div className="border-t border-[var(--color-border)] my-2"></div>
+                </>
+              ) : (
+                <>
+                  {/* Guest navigation */}
+                  <NavLink icon={<ProfileIcon className="w-5 h-5 mr-3" />} label="Profile" to="/profile" />
+                  <NavLink icon={<SettingsIcon className="w-5 h-5 mr-3" />} label="Settings" to="/settings" />
+                </>
+              )}
+              
+              {/* Common navigation for all users */}
+              <NavLink icon={<CoursesIcon className="w-5 h-5 mr-3" />} label="Courses" to="/courses" />
+              <NavLink icon={<DoubtsIcon className="w-5 h-5 mr-3" />} label="Doubts" to="/doubts" />
+              <NavLink icon={<CommunityIcon className="w-5 h-5 mr-3" />} label="Community" to="/community" />
+              <NavLink icon={<JobsIcon className="w-5 h-5 mr-3" />} label="Jobs" to="/jobs" />
+              <NavLink icon={<QuizIcon className="w-5 h-5 mr-3" />} label="Quiz" to="/quiz" />
+            </nav>
+          </aside>
+        </>
+      )}
+
+      {/* Sign-in Modal */}
+      <SignInModal
+        isOpen={isOpen}
+        onClose={closeModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        showGuestOption={modalConfig.showGuestOption}
+      />
     </div>
   );
 }
@@ -205,45 +451,60 @@ function Card({ title, img }: { title: string; img?: string }) {
   );
 }
 
-function NavItem({ icon: Icon, label, to, active }: { icon: any; label: string; to: string; active?: boolean }) {
-  return (
-    <Link to={to} prefetch="intent" className={`flex flex-col items-center text-xs ${active ? "text-blue-600" : "text-gray-500"}`}>
-      <Icon className="w-6 h-6 mb-1" />
-      {label}
-    </Link>
-  );
-}
-
-function HomeIcon(props: any) {
-  return <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9" /><path d="M9 21V9h6v12" /></svg>;
-}
+// Icon Components
 function CoursesIcon(props: any) {
   return <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>;
 }
+
 function DoubtsIcon(props: any) {
   return <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><circle cx="12" cy="8" r="1" /></svg>;
 }
+
 function CommunityIcon(props: any) {
   return <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M8 16v-1a4 4 0 0 1 8 0v1" /><circle cx="12" cy="8" r="4" /></svg>;
 }
+
 function ProfileIcon(props: any) {
   return <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M6 20v-2a4 4 0 0 1 8 0v2" /></svg>;
 }
+
 function SettingsIcon(props: any) {
   return (
     <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
       <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 8.6 15a1.65 1.65 0 0 0-1.82-.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 15.4 9a1.65 1.65 0 0 0 1.82.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 15z" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 8.6 15a1.65 1.65 0 0 0-1.82-.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 1 1 2.83 2.83l.06.06A1.65 1.65 0 0 0 15.4 9a1.65 1.65 0 0 0 1.82.33l.06.06a2 2 0 1 1 2.83 2.83l.06.06A1.65 1.65 0 0 0 19.4 15z" />
     </svg>
   );
 }
 
 function NavLink({ icon, label, to }: { icon: React.ReactNode; label: string; to: string }) {
   return (
-    <Link to={to} className="flex items-center py-2 px-3 rounded-lg hover:bg-white/40 transition-colors text-white">
+    <Link to={to} className="flex items-center py-2 px-3 rounded-lg hover:bg-[var(--color-interactive-hover)] transition-colors text-[var(--color-text-primary)]">
       {icon}
       <span>{label}</span>
     </Link>
+  );
+}
+
+function AdminIcon(props: any) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path d="M9 12l2 2 4-4" />
+      <path d="M21 12c-1 0-2-1-2-2s1-2 2-2 2 1 2 2-1 2-2 2z" />
+      <path d="M3 12c1 0 2-1 2-2s-1-2-2-2-2 1-2 2 1 2 2 2z" />
+      <path d="M12 3c0 1-1 2-2 2s-2-1-2-2 1-2 2-2 2 1 2 2z" />
+      <path d="M12 21c0-1 1-2 2-2s2 1 2 2-1 2-2 2-2-1-2-2z" />
+    </svg>
+  );
+}
+
+function LogoutIcon(props: any) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+      <polyline points="16,17 21,12 16,7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
   );
 }
 
@@ -255,10 +516,15 @@ function JobsIcon(props: any) {
     </svg>
   );
 }
-function NotificationsIcon(props: any) {
+
+function QuizIcon(props: any) {
   return (
     <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-      <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V4a2 2 0 1 0-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9" />
+      <path d="M9 12l2 2 4-4" />
+      <path d="M21 12c-1 0-2-1-2-2s1-2 2-2 2 1 2 2-1 2-2 2z" />
+      <path d="M3 12c1 0 2-1 2-2s-1-2-2-2-2 1-2 2 1 2 2 2z" />
+      <path d="M12 3c0 1-1 2-2 2s-2-1-2-2 1-2 2-2 2 1 2 2z" />
+      <path d="M12 21c0-1 1-2 2-2s2 1 2 2-1 2-2 2-2-1-2-2z" />
     </svg>
   );
 }
