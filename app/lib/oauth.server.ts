@@ -19,6 +19,8 @@ export const sessionStorage = createCookieSessionStorage({
     secure: process.env.NODE_ENV === "production",
     maxAge: 60 * 60 * 24 * 7, // 7 days
     domain: process.env.NODE_ENV === "production" ? undefined : "localhost",
+    // Ensure cookie is properly cleared on logout
+    expires: new Date(Date.now() + 60 * 60 * 24 * 7 * 1000), // 7 days from now
   },
 });
 
@@ -235,10 +237,23 @@ export async function logout(request: Request) {
     request.headers.get("Cookie")
   );
 
-  return redirect("/", {
-    headers: {
-      "Set-Cookie": await sessionStorage.destroySession(session),
-    },
+  const userId = session.get("userId");
+  console.log("🔄 Logout - destroying session for user:", userId);
+
+  // Destroy the current session
+  const destroyedSession = await sessionStorage.destroySession(session);
+  
+  console.log("✅ Logout - session destroyed, redirecting to home");
+  
+  return redirect("/?logout=true&t=" + Date.now(), {
+    headers: [
+      ["Set-Cookie", destroyedSession],
+      ["Set-Cookie", "__session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax"],
+      ["Set-Cookie", "__session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax; Domain=localhost"],
+      ["Cache-Control", "no-cache, no-store, must-revalidate, private, max-age=0"],
+      ["Pragma", "no-cache"],
+      ["Expires", "0"],
+    ],
   });
 }
 

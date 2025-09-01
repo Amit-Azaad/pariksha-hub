@@ -1,7 +1,6 @@
 // Service Worker for Exam Prep Platform
-const CACHE_NAME = 'exam-prep-v1';
+const CACHE_NAME = 'exam-prep-v5';
 const urlsToCache = [
-  '/',
   '/favicon.ico',
   '/logo-dark.png',
   '/logo-light.png',
@@ -36,11 +35,22 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
-      })
-  );
+  // For the homepage, always fetch fresh data to ensure correct session state
+  if (event.request.url.endsWith('/') || event.request.url.includes('localhost:5173/')) {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => {
+          // If network fails, fall back to cache
+          return caches.match(event.request);
+        })
+    );
+  } else {
+    // For other resources (images, CSS, etc.), use Cache First strategy for performance
+    event.respondWith(
+      caches.match(event.request)
+        .then(response => {
+          return response || fetch(event.request);
+        })
+    );
+  }
 }); 

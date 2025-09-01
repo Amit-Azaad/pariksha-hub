@@ -22,28 +22,48 @@ export async function loader({ request }: LoaderFunctionArgs) {
       prisma.heroSection.findMany({ orderBy: { id: "asc" } }),
     ]);
 
-    // Get user from session
+    // Check if this is a logout redirect
+    const url = new URL(request.url);
+    const isLogout = url.searchParams.get("logout") === "true";
+    
+    // Get user from session with more aggressive cache-busting
     let user = null;
     try {
       const { sessionStorage } = await import("../lib/oauth.server");
       const cookieHeader = request.headers.get("Cookie");
-      const session = await sessionStorage.getSession(cookieHeader);
-      const userId = session.get("userId");
       
-      if (userId) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: userId },
-        });
+      // Add timestamp to prevent caching
+      const timestamp = Date.now();
+      
+      if (cookieHeader && !isLogout) {
+        const session = await sessionStorage.getSession(cookieHeader);
+        const userId = session.get("userId");
         
-        if (dbUser) {
-          user = {
-            id: dbUser.id,
-            email: dbUser.email,
-            name: dbUser.name,
-            role: dbUser.role,
-            avatar: dbUser.avatar,
-          };
+        console.log("🔄 Homepage loader - userId:", userId, "isLogout:", isLogout);
+        
+        if (userId) {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: userId },
+          });
+          
+          if (dbUser) {
+            user = {
+              id: dbUser.id,
+              email: dbUser.email,
+              name: dbUser.name,
+              role: dbUser.role,
+              avatar: dbUser.avatar,
+              timestamp, // Add timestamp to user object
+            };
+            console.log("✅ Homepage loader - user found:", user.email);
+          } else {
+            console.log("❌ Homepage loader - user not found in database for userId:", userId);
+          }
+        } else {
+          console.log("❌ Homepage loader - no userId in session");
         }
+      } else {
+        console.log("❌ Homepage loader - no cookie header or logout redirect");
       }
     } catch (error) {
       console.error("Session error:", error);
@@ -53,9 +73,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
       { exams, testSeries, notes, heroSections, user },
       {
         headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate, private",
+          "Cache-Control": "no-cache, no-store, must-revalidate, private, max-age=0, s-maxage=0",
           "Pragma": "no-cache",
-          "Expires": "0"
+          "Expires": "0",
+          "Last-Modified": new Date().toUTCString(),
+          "ETag": `"${Date.now()}"`,
+          "Vary": "*",
+          "Surrogate-Control": "no-store"
         }
       }
     );
@@ -79,19 +103,42 @@ export default function Index() {
   const [heroIndex, setHeroIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
+  const [isClient, setIsClient] = useState(false);
+  const [userKey, setUserKey] = useState(0);
   const { isOpen, modalConfig, openModal, closeModal } = useSignInModal();
   const revalidator = useRevalidator();
 
+  // Track client-side hydration
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Force re-render when user state changes
+  useEffect(() => {
+    setUserKey(prev => prev + 1);
+  }, [user]);
+
+  // Handle logout redirect and clear any cached state (only once)
+  useEffect(() => {
+    if (isClient) {
+      const url = new URL(window.location.href);
+      const isLogout = url.searchParams.get("logout") === "true";
+      
+      if (isLogout) {
+        // Clear the URL parameters
+        window.history.replaceState({}, document.title, "/");
+        
+        // Force a hard reload to ensure clean state and fresh server request
+        // Use replace to prevent back button issues and ensure fresh request
+        window.location.replace('/');
+      }
+    }
+  }, [isClient]); // Removed revalidator dependency to prevent infinite loop
+
+
+
   // Use server user directly - no client-side caching to avoid inconsistencies
   const displayUser = user;
-  
-  // Force revalidation when user state changes to ensure fresh data
-  useEffect(() => {
-    if (user === null) {
-      // If user is null (logged out), force revalidation to ensure clean state
-      revalidator.revalidate();
-    }
-  }, [user, revalidator]);
 
   // Carousel auto-advance
   useEffect(() => {
@@ -154,51 +201,65 @@ export default function Index() {
             </svg>
           </Link>
           
-          {displayUser ? (
-            <div className="flex items-center space-x-3">
-              {/* User Avatar */}
-              {displayUser.avatar && displayUser.avatar.trim() !== '' ? (
-                <img
-                  className="h-8 w-8 rounded-full border-2 border-gray-200 object-cover"
-                  src={displayUser.avatar}
-                  alt={displayUser.name || displayUser.email}
-                  onError={(e) => {
-                    // Fallback to initials if image fails to load
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    const fallback = target.nextElementSibling as HTMLElement;
-                    if (fallback) fallback.style.display = 'flex';
-                  }}
-                />
-              ) : null}
-              
-              {/* Fallback Avatar with Initials */}
-              <div 
-                className={`h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center border-2 border-gray-200 ${
-                  displayUser.avatar && displayUser.avatar.trim() !== '' ? 'hidden' : ''
-                }`}
-              >
-                <span className="text-white text-xs font-medium">
-                  {displayUser.name ? displayUser.name.charAt(0).toUpperCase() : displayUser.email.charAt(0).toUpperCase()}
-                </span>
+          <div key={`header-user-${userKey}`}>
+            {!isClient ? (
+              // Server-side rendering - show placeholder
+              <div className="flex items-center space-x-3">
+                <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
+                <div className="hidden md:block text-left">
+                  <div className="h-4 w-20 bg-gray-200 rounded animate-pulse mb-1"></div>
+                  <div className="h-3 w-24 bg-gray-200 rounded animate-pulse"></div>
+                </div>
               </div>
-              
-              {/* User Info (hidden on mobile) */}
-              <div className="hidden md:block text-left">
-                <p className="text-sm font-medium text-gray-700">
-                  {displayUser.name || 'User'}
-                </p>
-                <p className="text-xs text-gray-500">{displayUser.email}</p>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => openModal()}
-              className="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-            >
-              Sign In
-            </button>
-          )}
+            ) : (
+              // Client-side rendering - show actual content
+              displayUser ? (
+                <div className="flex items-center space-x-3">
+                  {/* User Avatar */}
+                  {displayUser.avatar && displayUser.avatar.trim() !== '' ? (
+                    <img
+                      className="h-8 w-8 rounded-full border-2 border-gray-200 object-cover"
+                      src={displayUser.avatar}
+                      alt={displayUser.name || displayUser.email}
+                      onError={(e) => {
+                        // Fallback to initials if image fails to load
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  
+                  {/* Fallback Avatar with Initials */}
+                  <div 
+                    className={`h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center border-2 border-gray-200 ${
+                      displayUser.avatar && displayUser.avatar.trim() !== '' ? 'hidden' : ''
+                    }`}
+                  >
+                    <span className="text-white text-xs font-medium">
+                      {displayUser.name ? displayUser.name.charAt(0).toUpperCase() : displayUser.email.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  
+                  {/* User Info (hidden on mobile) */}
+                  <div className="hidden md:block text-left">
+                    <p className="text-sm font-medium text-gray-700">
+                      {displayUser.name || 'User'}
+                    </p>
+                    <p className="text-xs text-gray-500">{displayUser.email}</p>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => openModal()}
+                  className="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                >
+                  Sign In
+                </button>
+              )
+            )}
+          </div>
           
           <button 
             className="flex items-center justify-center w-8 h-8 hover:bg-[var(--color-interactive-hover)] dark:hover:bg-white/20 rounded-lg transition-colors" 
@@ -301,110 +362,135 @@ export default function Index() {
             tabIndex={-1}
           >
             {/* User Profile Section */}
-            <div className="px-4 py-4 border-b border-white/30">
-              {displayUser ? (
+            <div className="px-4 py-4 border-b border-white/30" key={`sidebar-profile-${userKey}`}>
+              {!isClient ? (
+                // Server-side rendering - show placeholder
                 <div className="flex items-center space-x-3 mb-4">
-                  {displayUser.avatar ? (
-                    <img
-                      className="h-10 w-10 rounded-full"
-                      src={displayUser.avatar}
-                      alt={displayUser.name || displayUser.email}
-                    />
-                  ) : (
-                    <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">
-                        {displayUser.name ? displayUser.name.charAt(0).toUpperCase() : displayUser.email.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
+                  <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">
-                      {displayUser.name || 'User'}
-                    </p>
-                    <p className="text-xs text-[var(--color-text-secondary)] truncate">{displayUser.email}</p>
-                    <p className="text-xs text-[var(--color-accent-primary)] font-medium">
-                      {displayUser.role === 'ADMIN' ? 'Administrator' : 'User'}
-                    </p>
+                    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse mb-1"></div>
+                    <div className="h-3 w-32 bg-gray-200 rounded animate-pulse mb-1"></div>
+                    <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
                   </div>
-                  {/* Close Button */}
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => setSidebarOpen(false)}
-                      aria-label="Close sidebar"
-                      className="text-2xl focus:outline-none text-[var(--color-text-primary)] hover:text-[var(--color-text-secondary)] transition-colors"
-                    >
-                      &times;
-                    </button>
-                  </div>
+                  <div className="h-6 w-6 bg-gray-200 rounded animate-pulse"></div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between">
-                  <div className="text-center py-4 flex-1">
-                    <p className="text-[var(--color-text-secondary)] text-sm mb-3">Not signed in</p>
-                    <button
-                      onClick={() => {
-                        openModal();
-                        setSidebarOpen(false);
-                      }}
-                      className="px-4 py-2 bg-[var(--color-accent-primary)] text-white rounded-lg hover:bg-[var(--color-accent-secondary)] text-sm"
-                    >
-                      Sign In
-                    </button>
+                // Client-side rendering - show actual content
+                displayUser ? (
+                  <div className="flex items-center space-x-3 mb-4">
+                    {displayUser.avatar ? (
+                      <img
+                        className="h-10 w-10 rounded-full"
+                        src={displayUser.avatar}
+                        alt={displayUser.name || displayUser.email}
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
+                        <span className="text-white text-sm font-medium">
+                          {displayUser.name ? displayUser.name.charAt(0).toUpperCase() : displayUser.email.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">
+                        {displayUser.name || 'User'}
+                      </p>
+                      <p className="text-xs text-[var(--color-text-secondary)] truncate">{displayUser.email}</p>
+                      <p className="text-xs text-[var(--color-accent-primary)] font-medium">
+                        {displayUser.role === 'ADMIN' ? 'Administrator' : 'User'}
+                      </p>
+                    </div>
+                    {/* Close Button */}
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => setSidebarOpen(false)}
+                        aria-label="Close sidebar"
+                        className="text-2xl focus:outline-none text-[var(--color-text-primary)] hover:text-[var(--color-text-secondary)] transition-colors"
+                      >
+                        &times;
+                      </button>
+                    </div>
                   </div>
-                  {/* Close Button for Guest Users */}
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => setSidebarOpen(false)}
-                      aria-label="Close sidebar"
-                      className="text-2xl focus:outline-none text-[var(--color-text-primary)] hover:text-[var(--color-text-secondary)] transition-colors"
-                    >
-                      &times;
-                    </button>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="text-center py-4 flex-1">
+                      <p className="text-[var(--color-text-secondary)] text-sm mb-3">Not signed in</p>
+                      <button
+                        onClick={() => {
+                          openModal();
+                          setSidebarOpen(false);
+                        }}
+                        className="px-4 py-2 bg-[var(--color-accent-primary)] text-white rounded-lg hover:bg-[var(--color-accent-secondary)] text-sm"
+                      >
+                        Sign In
+                      </button>
+                    </div>
+                    {/* Close Button for Guest Users */}
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => setSidebarOpen(false)}
+                        aria-label="Close sidebar"
+                        className="text-2xl focus:outline-none text-[var(--color-text-primary)] hover:text-[var(--color-text-secondary)] transition-colors"
+                      >
+                        &times;
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )
               )}
             </div>
 
             {/* Navigation Menu */}
-            <nav className="flex flex-col gap-1 p-4">
-              {displayUser ? (
+            <nav className="flex flex-col gap-1 p-4" key={`sidebar-nav-${userKey}`}>
+              {!isClient ? (
+                // Server-side rendering - show placeholder
                 <>
-                  {/* User-specific navigation */}
-                  <NavLink icon={<ProfileIcon className="w-5 h-5 mr-3" />} label="Profile Settings" to="/auth/profile" />
-                  <NavLink icon={<SettingsIcon className="w-5 h-5 mr-3" />} label="Settings" to="/settings" />
-                  
-                  {/* Admin-specific navigation */}
-                  {displayUser.role === 'ADMIN' && (
-                    <NavLink 
-                      icon={<AdminIcon className="w-5 h-5 mr-3" />} 
-                      label="Admin Dashboard" 
-                      to="/admin" 
-                    />
-                  )}
-                  
-                  {/* Divider */}
+                  <div className="h-10 bg-gray-200 rounded-lg animate-pulse mb-2"></div>
+                  <div className="h-10 bg-gray-200 rounded-lg animate-pulse mb-2"></div>
                   <div className="border-t border-[var(--color-border)] my-2"></div>
-                  
-                  {/* Logout */}
-                  <form method="post" action="/auth/logout" className="w-full">
-                    <button
-                      type="submit"
-                      onClick={() => setSidebarOpen(false)}
-                      className="flex items-center py-2 px-3 rounded-lg hover:bg-[var(--color-interactive-hover)] transition-colors text-[var(--color-text-primary)] text-left w-full"
-                    >
-                      <LogoutIcon className="w-5 h-5 mr-3" />
-                      <span>Sign Out</span>
-                    </button>
-                  </form>
-                  
-                  {/* Divider */}
+                  <div className="h-10 bg-gray-200 rounded-lg animate-pulse mb-2"></div>
                   <div className="border-t border-[var(--color-border)] my-2"></div>
                 </>
               ) : (
-                <>
-                  {/* Guest navigation - settings available for theme preferences */}
-                  <NavLink icon={<SettingsIcon className="w-5 h-5 mr-3" />} label="Settings" to="/settings" />
-                </>
+                // Client-side rendering - show actual content
+                displayUser ? (
+                  <>
+                    {/* User-specific navigation */}
+                    <NavLink icon={<ProfileIcon className="w-5 h-5 mr-3" />} label="Profile Settings" to="/auth/profile" />
+                    <NavLink icon={<SettingsIcon className="w-5 h-5 mr-3" />} label="Settings" to="/settings" />
+                    
+                    {/* Admin-specific navigation */}
+                    {displayUser.role === 'ADMIN' && (
+                      <NavLink 
+                        icon={<AdminIcon className="w-5 h-5 mr-3" />} 
+                        label="Admin Dashboard" 
+                        to="/admin" 
+                      />
+                    )}
+                    
+                    {/* Divider */}
+                    <div className="border-t border-[var(--color-border)] my-2"></div>
+                    
+                    {/* Logout */}
+                    <form method="post" action="/auth/logout" className="w-full">
+                      <button
+                        type="submit"
+                        className="flex items-center py-2 px-3 rounded-lg hover:bg-[var(--color-interactive-hover)] transition-colors text-[var(--color-text-primary)] text-left w-full"
+                      >
+                        <LogoutIcon className="w-5 h-5 mr-3" />
+                        <span>Sign Out</span>
+                      </button>
+                    </form>
+                    
+                    {/* Divider */}
+                    <div className="border-t border-[var(--color-border)] my-2"></div>
+                  </>
+                ) : (
+                  <>
+                    {/* Guest navigation - settings available for theme preferences */}
+                    <NavLink icon={<SettingsIcon className="w-5 h-5 mr-3" />} label="Settings" to="/settings" />
+                  </>
+                )
               )}
               
               {/* Common navigation for all users */}

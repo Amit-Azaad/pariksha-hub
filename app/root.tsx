@@ -46,6 +46,10 @@ export function meta() {
     { name: "msapplication-square150x150logo", content: "/logo-light.png" },
     { name: "msapplication-wide310x150logo", content: "/logo-light.png" },
     { name: "msapplication-square310x310logo", content: "/logo-light.png" },
+    // Cache-busting meta tags
+    { "http-equiv": "Cache-Control", content: "no-cache, no-store, must-revalidate" },
+    { "http-equiv": "Pragma", content: "no-cache" },
+    { "http-equiv": "Expires", content: "0" },
   ];
 }
 
