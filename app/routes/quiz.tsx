@@ -1,29 +1,27 @@
-import type { MetaFunction } from "@remix-run/node";
-import { Link } from "@remix-run/react";
+import type { MetaFunction, LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import QuizList from "../components/quiz/QuizList";
+import { getAvailableQuizzes } from "../lib/quiz.server";
 
 export const meta: MetaFunction = () => [{ title: "Quiz | Pariksha Hub" }];
 
+export async function loader({ request }: LoaderFunctionArgs) {
+  try {
+    const result = await getAvailableQuizzes();
+    return json(result);
+  } catch (error) {
+    console.error("Error loading quizzes:", error);
+    return json({ success: false, quizzes: [], error: "Failed to load quizzes" });
+  }
+}
+
 export default function QuizPage() {
+  const data = useLoaderData<typeof loader>();
+
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Back Navigation */}
-      <div className="px-6 py-4">
-        <Link 
-          to="/" 
-          className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Home
-        </Link>
-      </div>
-      
-      {/* Page Content */}
-      <div className="flex flex-col items-center justify-center flex-1">
-        <h1 className="text-2xl font-bold mb-4">Quiz</h1>
-        <p className="text-gray-600">Test your knowledge with our interactive quizzes.</p>
-      </div>
+    <div className="min-h-screen bg-[var(--color-bg-primary)]">
+      <QuizList initialQuizzes={data.success ? data.quizzes : []} />
     </div>
   );
 }

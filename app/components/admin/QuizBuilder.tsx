@@ -26,7 +26,8 @@ export default function QuizBuilder({ onQuizCreated, onCancel }: QuizBuilderProp
   const [quizData, setQuizData] = useState({
     title: '',
     description: '',
-    type: 'practice',
+    type: 'daily',
+    category: '',
     timeLimit: 30,
     isActive: true,
     isPublic: true
@@ -121,6 +122,7 @@ export default function QuizBuilder({ onQuizCreated, onCancel }: QuizBuilderProp
     formData.append('title', quizData.title);
     formData.append('description', quizData.description);
     formData.append('type', quizData.type);
+    formData.append('category', quizData.category);
     formData.append('timeLimit', quizData.timeLimit.toString());
     formData.append('isActive', quizData.isActive.toString());
     formData.append('isPublic', quizData.isPublic.toString());
@@ -188,9 +190,28 @@ export default function QuizBuilder({ onQuizCreated, onCancel }: QuizBuilderProp
             onChange={(e) => setQuizData(prev => ({ ...prev, type: e.target.value }))}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
-            <option value="practice">Practice</option>
-            <option value="mock">Mock Test</option>
-            <option value="assessment">Assessment</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Category
+          </label>
+          <select
+            value={quizData.category}
+            onChange={(e) => setQuizData(prev => ({ ...prev, category: e.target.value }))}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          >
+            <option value="">Select Category</option>
+            <option value="General Knowledge">General Knowledge</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="Science">Science</option>
+            <option value="History">History</option>
+            <option value="Geography">Geography</option>
+            <option value="English">English</option>
           </select>
         </div>
 

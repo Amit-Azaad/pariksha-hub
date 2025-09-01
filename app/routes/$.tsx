@@ -9,6 +9,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return json({ message: "Not found" }, { status: 404 });
   }
   
+  // Don't handle quiz routes - let them be handled by their specific routes
+  if (url.pathname.startsWith('/quiz/')) {
+    throw new Response("Not Found", { status: 404 });
+  }
+  
   // Handle other unmatched routes
   return json({ message: "Page not found" }, { status: 404 });
 }

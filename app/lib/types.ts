@@ -1,3 +1,6 @@
+// Language Types
+export type Language = 'en' | 'hi';
+
 // Authentication and User Types
 export interface User {
   id: number;
@@ -10,6 +13,7 @@ export interface User {
   lastLoginAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  preferredLanguage?: Language;
 }
 
 // Use Prisma's generated enum instead of custom one
@@ -33,6 +37,19 @@ export interface Question {
   createdAt: Date;
   updatedAt: Date;
   translations: QuestionTranslation[];
+  tags: QuestionTag[];
+}
+
+// Helper type for questions with specific language translation
+export interface QuestionWithTranslation {
+  id: number;
+  questionType: string;
+  category: string | null;
+  difficulty: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  translation: QuestionTranslation;
   tags: QuestionTag[];
 }
 
@@ -60,6 +77,7 @@ export interface Quiz {
   title: string;
   description: string | null;
   type: string | null;
+  category: string | null;
   timeLimit: number | null;
   isActive: boolean;
   isPublic: boolean;

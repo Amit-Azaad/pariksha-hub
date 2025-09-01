@@ -81,11 +81,11 @@ export async function action({ request }: ActionFunctionArgs) {
             difficulty: rowData.difficulty || 'medium',
             isActive: true,
             tags: {
-              create: tags.map(tag => ({ tag }))
+              create: tags.map((tag: string) => ({ tag }))
             },
             translations: {
               create: {
-                language,
+                language: language as string,
                 questionText: rowData.questionText,
                 explanation: rowData.explanation || null,
                 optionA: rowData.optionA,

@@ -59,9 +59,8 @@ export async function startQuizAttempt(data: QuizStartData) {
               include: {
                 question: {
                   include: {
-                    translations: {
-                      where: { language: "en" }
-                    }
+                    translations: true,
+                    tags: true
                   }
                 }
               },
@@ -98,21 +97,9 @@ export async function submitAnswer(data: AnswerSubmission) {
 
     const isCorrect = question.translations[0]?.correctOptionKey === data.selectedOption;
 
-    // Create or update question attempt
-    const questionAttempt = await prisma.questionAttempt.upsert({
-      where: {
-        quizAttemptId_questionId: {
-          quizAttemptId: data.attemptId,
-          questionId: data.questionId
-        }
-      },
-      update: {
-        selectedOption: data.selectedOption,
-        isCorrect,
-        timeSpent: data.timeSpent,
-        answeredAt: new Date()
-      },
-      create: {
+    // Create question attempt
+    const questionAttempt = await prisma.questionAttempt.create({
+      data: {
         quizAttemptId: data.attemptId,
         questionId: data.questionId,
         selectedOption: data.selectedOption,
@@ -167,9 +154,8 @@ export async function completeQuizAttempt(data: QuizCompletion) {
               include: {
                 question: {
                   include: {
-                    translations: {
-                      where: { language: "en" }
-                    }
+                    translations: true,
+                    tags: true
                   }
                 }
               }
@@ -180,9 +166,8 @@ export async function completeQuizAttempt(data: QuizCompletion) {
           include: {
             question: {
               include: {
-                translations: {
-                  where: { language: "en" }
-                }
+                translations: true,
+                tags: true
               }
             }
           }
@@ -218,9 +203,8 @@ export async function getQuizAttempt(attemptId: number) {
               include: {
                 question: {
                   include: {
-                    translations: {
-                      where: { language: "en" }
-                    }
+                    translations: true,
+                    tags: true
                   }
                 }
               },
@@ -232,9 +216,8 @@ export async function getQuizAttempt(attemptId: number) {
           include: {
             question: {
               include: {
-                translations: {
-                  where: { language: "en" }
-                }
+                translations: true,
+                tags: true
               }
             }
           },
@@ -271,7 +254,6 @@ export async function getAvailableQuizzes(filters?: {
     
     if (filters?.type) where.type = filters.type;
     if (filters?.category) where.category = filters.category;
-    if (filters?.difficulty) where.difficulty = filters.difficulty;
 
     const [quizzes, total] = await Promise.all([
       prisma.quiz.findMany({

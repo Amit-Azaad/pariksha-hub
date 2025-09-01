@@ -14,8 +14,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <NavItem icon={HomeIcon} label="Home" to="/" active={location.pathname === "/"} />
           <NavItem icon={JobsIcon} label="Jobs" to="/jobs" active={location.pathname === "/jobs"} />
           <NavItem icon={QuizIcon} label="Quiz" to="/quiz" active={location.pathname === "/quiz"} />
-          <NavItem icon={PYQIcon} label="PYQ's" to="/pyq" active={location.pathname === "/pyq"} />
-          <NavItem icon={CAIcon} label="CA" to="/ca" active={location.pathname === "/ca"} />
+          {/* <NavItem icon={PYQIcon} label="PYQ's" to="/pyq" active={location.pathname === "/pyq"} /> */}
+          {/* <NavItem icon={CAIcon} label="CA" to="/ca" active={location.pathname === "/ca"} /> */}
         </div>
       </nav>
 
@@ -35,8 +35,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <NavItem icon={HomeIcon} label="Home" to="/" active={location.pathname === "/"} />
         <NavItem icon={JobsIcon} label="Jobs" to="/jobs" active={location.pathname === "/jobs"} />
         <NavItem icon={QuizIcon} label="Quiz" to="/quiz" active={location.pathname === "/quiz"} />
-        <NavItem icon={PYQIcon} label="PYQ's" to="/pyq" active={location.pathname === "/pyq"} />
-        <NavItem icon={CAIcon} label="CA" to="/ca" active={location.pathname === "/ca"} />
+        {/* <NavItem icon={PYQIcon} label="PYQ's" to="/pyq" active={location.pathname === "/pyq"} /> */}
+        {/* <NavItem icon={CAIcon} label="CA" to="/ca" active={location.pathname === "/ca"} /> */}
       </nav>
 
       {/* Custom CSS for 528px breakpoint */}

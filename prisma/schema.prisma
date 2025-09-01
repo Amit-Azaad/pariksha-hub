@@ -114,6 +114,7 @@ model Quiz {
   createdBy   Int?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
+  category    String?
   creator     User?          @relation(fields: [createdBy], references: [id])
   attempts    QuizAttempt[]
   questions   QuizQuestion[]

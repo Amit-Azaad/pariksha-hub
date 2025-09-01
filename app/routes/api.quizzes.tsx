@@ -7,6 +7,7 @@ import { prisma } from "../lib/prisma.server";
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const type = url.searchParams.get("type");
+  const category = url.searchParams.get("category");
   const page = parseInt(url.searchParams.get("page") || "1");
   const limit = parseInt(url.searchParams.get("limit") || "20");
   const offset = (page - 1) * limit;
@@ -15,6 +16,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const where: any = { isActive: true, isPublic: true };
     
     if (type) where.type = type;
+    if (category) where.category = category;
 
     const [quizzes, total] = await Promise.all([
       prisma.quiz.findMany({
@@ -63,6 +65,7 @@ export async function action({ request }: ActionFunctionArgs) {
       title: formData.get("title") as string,
       description: formData.get("description") as string,
       type: formData.get("type") as string,
+      category: formData.get("category") as string,
       timeLimit: formData.get("timeLimit") ? parseInt(formData.get("timeLimit") as string) : null,
       isActive: formData.get("isActive") === "true",
       isPublic: formData.get("isPublic") === "true",
