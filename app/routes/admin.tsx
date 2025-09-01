@@ -10,6 +10,7 @@ import CSVUpload from "../components/admin/CSVUpload";
 import QuizBuilder from "../components/admin/QuizBuilder";
 import UsersManagement from "../components/admin/UsersManagement";
 import Analytics from "../components/admin/Analytics";
+import HeroSectionManager from "../components/admin/HeroSectionManager";
 
 export const meta: MetaFunction = () => [
   { title: "Admin Dashboard - Pariksha Hub" },
@@ -297,6 +298,7 @@ export default function AdminDashboard() {
           {activeTab === 'questions' && <CSVUpload />}
           {activeTab === 'quizzes' && <QuizBuilder />}
           {activeTab === 'users' && <UsersManagement />}
+          {activeTab === 'hero-sections' && <HeroSectionManager />}
           {activeTab === 'analytics' && <Analytics />}
         </main>
       </div>

@@ -1,11 +1,19 @@
-import type { MetaFunction } from "@remix-run/node";
-import { Link } from "@remix-run/react";
+import type { MetaFunction, LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import { Link, useLoaderData } from "@remix-run/react";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { useTheme } from "../hooks/useTheme";
+import { getUserFromSession } from "../lib/oauth.server";
 
 export const meta: MetaFunction = () => [{ title: "Settings | Pariksha Hub" }];
 
+export async function loader({ request }: LoaderFunctionArgs) {
+  const user = await getUserFromSession(request);
+  return json({ user });
+}
+
 export default function SettingsPage() {
+  const { user } = useLoaderData<typeof loader>();
   const { theme } = useTheme();
   
   return (
@@ -31,8 +39,60 @@ export default function SettingsPage() {
         </div>
         
         {/* Settings Sections */}
-        <div className="max-w-2xl">
-          {/* Appearance Section */}
+        <div className="max-w-2xl space-y-6">
+          {/* Profile Section - Only for logged-in users */}
+          {user && (
+            <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-border)] overflow-hidden">
+              <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg-muted)]">
+                <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M6 20v-2a4 4 0 0 1 8 0v2" />
+                  </svg>
+                  Profile Settings
+                </h2>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[var(--color-text-primary)] font-medium">Profile Information</span>
+                    <p className="text-sm text-[var(--color-text-secondary)] mt-1">
+                      Manage your account details and preferences
+                    </p>
+                  </div>
+                  <Link
+                    to="/auth/profile"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    Edit Profile
+                  </Link>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-[var(--color-border)]">
+                  <div>
+                    <span className="text-sm text-[var(--color-text-secondary)]">Name</span>
+                    <p className="text-[var(--color-text-primary)] font-medium">{user.name || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-[var(--color-text-secondary)]">Email</span>
+                    <p className="text-[var(--color-text-primary)] font-medium">{user.email}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-[var(--color-text-secondary)]">Role</span>
+                    <p className="text-[var(--color-text-primary)] font-medium capitalize">{user.role.toLowerCase()}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-[var(--color-text-secondary)]">Member Since</span>
+                    <p className="text-[var(--color-text-primary)] font-medium">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Appearance Section - Available for all users */}
           <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-border)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg-muted)]">
               <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
@@ -48,7 +108,7 @@ export default function SettingsPage() {
                 <div>
                   <span className="text-[var(--color-text-primary)] font-medium">Theme</span>
                   <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                    Choose between light and dark appearance
+                    Choose between light and dark appearance. Dark mode is the default.
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -60,10 +120,6 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-
-
-
-
         </div>
       </div>
     </div>

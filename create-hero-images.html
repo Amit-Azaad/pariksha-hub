@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Hero Images</title>
+</head>
+<body>
+    <canvas id="canvas1" width="1200" height="400" style="border: 1px solid #ccc;"></canvas>
+    <canvas id="canvas2" width="1200" height="400" style="border: 1px solid #ccc;"></canvas>
+    <canvas id="canvas3" width="1200" height="400" style="border: 1px solid #ccc;"></canvas>
+    <canvas id="canvas4" width="1200" height="400" style="border: 1px solid #ccc;"></canvas>
+    <canvas id="canvas5" width="1200" height="400" style="border: 1px solid #ccc;"></canvas>
+
+    <script>
+        const colors = [
+            ['#3B82F6', '#1E40AF'], // Blue
+            ['#10B981', '#047857'], // Green
+            ['#F59E0B', '#D97706'], // Orange
+            ['#EF4444', '#DC2626'], // Red
+            ['#8B5CF6', '#7C3AED']  // Purple
+        ];
+
+        const texts = [
+            'Welcome to Pariksha Hub!',
+            'Join our comprehensive test series',
+            'Get expert notes and shortcuts',
+            'Practice with thousands of questions',
+            'Track your progress with analytics'
+        ];
+
+        colors.forEach((colorPair, index) => {
+            const canvas = document.getElementById(`canvas${index + 1}`);
+            const ctx = canvas.getContext('2d');
+            
+            // Create gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 1200, 400);
+            gradient.addColorStop(0, colorPair[0]);
+            gradient.addColorStop(1, colorPair[1]);
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 1200, 400);
+            
+            // Add text
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(texts[index], 600, 200);
+            
+            // Add download link
+            const link = document.createElement('a');
+            link.download = `hero_${index + 1}.jpg`;
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.textContent = `Download Hero ${index + 1}`;
+            link.style.display = 'block';
+            link.style.margin = '10px';
+            document.body.appendChild(link);
+        });
+    </script>
+</body>
+</html>

@@ -456,7 +456,6 @@ export default function Index() {
                 displayUser ? (
                   <>
                     {/* User-specific navigation */}
-                    <NavLink icon={<ProfileIcon className="w-5 h-5 mr-3" />} label="Profile Settings" to="/auth/profile" />
                     <NavLink icon={<SettingsIcon className="w-5 h-5 mr-3" />} label="Settings" to="/settings" />
                     
                     {/* Admin-specific navigation */}
@@ -540,9 +539,9 @@ function Card({ title, img }: { title: string; img?: string }) {
 //   return <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M8 16v-1a4 4 0 0 1 8 0v1" /><circle cx="12" cy="8" r="4" /></svg>;
 // }
 
-function ProfileIcon(props: any) {
-  return <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M6 20v-2a4 4 0 0 1 8 0v2" /></svg>;
-}
+// function ProfileIcon(props: any) {
+//   return <svg {...props} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M6 20v-2a4 4 0 0 1 8 0v2" /></svg>;
+// }
 
 function SettingsIcon(props: any) {
   return (
