@@ -180,11 +180,14 @@ export default function Index() {
         {/* Header */}
         <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-header)]">
           <div className="flex items-center justify-center w-10 h-10 bg-transparent hover:bg-[var(--color-interactive-hover)] dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer">
-          <img 
-            src="/images/LearnPlusFinalLogo.png" 
-            alt="LEARN PLUS Logo" 
-            className="w-10 h-10 object-contain"
-          />
+          <picture>
+            <source srcSet="/images/LearnPlusFinalLogo-min.webp" type="image/webp" />
+            <img 
+              src="/images/LearnPlusFinalLogo-min.png" 
+              alt="LEARN PLUS Logo" 
+              className="w-10 h-10 object-contain"
+            />
+          </picture>
         </div>
         <div className="flex-1 mx-4 flex items-center">
           <input
