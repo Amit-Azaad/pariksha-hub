@@ -4,7 +4,6 @@ import { json } from "@remix-run/node";
 import { useLoaderData, Link, useRevalidator } from "@remix-run/react";
 import SignInModal from "../components/auth/SignInModal";
 import { useSignInModal } from "../hooks/useSignInModal";
-import { signOut } from "../utils/oauth-utils";
 
 export const meta: MetaFunction = () => [
   { title: "Exam Prep Platform" },
@@ -54,7 +53,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
       { exams, testSeries, notes, heroSections, user },
       {
         headers: {
-          "Cache-Control": "no-cache, must-revalidate"
+          "Cache-Control": "no-cache, no-store, must-revalidate, private",
+          "Pragma": "no-cache",
+          "Expires": "0"
         }
       }
     );
@@ -79,28 +80,18 @@ export default function Index() {
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
   const { isOpen, modalConfig, openModal, closeModal } = useSignInModal();
-
-
-
-  // Clean session recovery using Remix's useRevalidator
-  const [clientUser, setClientUser] = useState(user);
   const revalidator = useRevalidator();
+
+  // Use server user directly - no client-side caching to avoid inconsistencies
+  const displayUser = user;
   
+  // Force revalidation when user state changes to ensure fresh data
   useEffect(() => {
-    // On soft refresh, use Remix's revalidator to force fresh data
-    if (!user && exams?.length > 0) {
+    if (user === null) {
+      // If user is null (logged out), force revalidation to ensure clean state
       revalidator.revalidate();
-      return;
     }
-    
-    // Update client user when server user is available
-    if (user) {
-      setClientUser(user);
-    }
-  }, [user, exams, revalidator]);
-  
-  // Use clientUser if available, fallback to server user
-  const displayUser = clientUser || user;
+  }, [user, revalidator]);
 
   // Carousel auto-advance
   useEffect(() => {
@@ -387,7 +378,7 @@ export default function Index() {
                     <NavLink 
                       icon={<AdminIcon className="w-5 h-5 mr-3" />} 
                       label="Admin Dashboard" 
-                      to="/admin/dashboard" 
+                      to="/admin" 
                     />
                   )}
                   
@@ -395,24 +386,23 @@ export default function Index() {
                   <div className="border-t border-[var(--color-border)] my-2"></div>
                   
                   {/* Logout */}
-                  <button
-                    onClick={async () => {
-                      await signOut();
-                      setSidebarOpen(false);
-                    }}
-                    className="flex items-center py-2 px-3 rounded-lg hover:bg-[var(--color-interactive-hover)] transition-colors text-[var(--color-text-primary)] text-left w-full"
-                  >
-                    <LogoutIcon className="w-5 h-5 mr-3" />
-                    <span>Sign Out</span>
-                  </button>
+                  <form method="post" action="/auth/logout" className="w-full">
+                    <button
+                      type="submit"
+                      onClick={() => setSidebarOpen(false)}
+                      className="flex items-center py-2 px-3 rounded-lg hover:bg-[var(--color-interactive-hover)] transition-colors text-[var(--color-text-primary)] text-left w-full"
+                    >
+                      <LogoutIcon className="w-5 h-5 mr-3" />
+                      <span>Sign Out</span>
+                    </button>
+                  </form>
                   
                   {/* Divider */}
                   <div className="border-t border-[var(--color-border)] my-2"></div>
                 </>
               ) : (
                 <>
-                  {/* Guest navigation */}
-                  <NavLink icon={<ProfileIcon className="w-5 h-5 mr-3" />} label="Profile" to="/profile" />
+                  {/* Guest navigation - settings available for theme preferences */}
                   <NavLink icon={<SettingsIcon className="w-5 h-5 mr-3" />} label="Settings" to="/settings" />
                 </>
               )}

@@ -31,7 +31,7 @@ export default function SettingsPage() {
         </div>
         
         {/* Settings Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="max-w-2xl">
           {/* Appearance Section */}
           <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-border)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg-muted)]">
@@ -61,46 +61,9 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Account Section - Placeholder for future settings */}
-          <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-border)] overflow-hidden">
-            <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg-muted)]">
-              <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M6 20v-2a4 4 0 0 1 8 0v2" />
-                </svg>
-                Account
-              </h2>
-            </div>
-            <div className="p-6">
-              <div className="text-center py-8">
-                <svg className="w-12 h-12 mx-auto text-[var(--color-text-muted)] mb-3" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                <p className="text-[var(--color-text-secondary)]">More account settings coming soon</p>
-              </div>
-            </div>
-          </div>
 
-          {/* Notifications Section - Placeholder for future settings */}
-          <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-border)] overflow-hidden">
-            <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg-muted)]">
-              <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V4a2 2 0 1 0-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9" />
-                </svg>
-                Notifications
-              </h2>
-            </div>
-            <div className="p-6">
-              <div className="text-center py-8">
-                <svg className="w-12 h-12 mx-auto text-[var(--color-text-muted)] mb-3" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                <p className="text-[var(--color-text-secondary)]">Notification preferences coming soon</p>
-              </div>
-            </div>
-          </div>
+
+
         </div>
       </div>
     </div>

@@ -3,6 +3,13 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Clear existing data
+  await prisma.quizQuestion.deleteMany();
+  await prisma.quizAttempt.deleteMany();
+  await prisma.questionAttempt.deleteMany();
+  await prisma.questionTag.deleteMany();
+  await prisma.questionTranslation.deleteMany();
+  await prisma.question.deleteMany();
+  await prisma.quiz.deleteMany();
   await prisma.note.deleteMany();
   await prisma.testSeries.deleteMany();
   await prisma.exam.deleteMany();
@@ -259,6 +266,294 @@ async function main() {
     data: notesData,
   });
 
+  // Create sample questions
+  const questionsData: Array<{
+    questionType: string;
+    category: string;
+    difficulty: string;
+    isActive: boolean;
+    translations: Array<{
+      language: string;
+      questionText: string;
+      explanation: string;
+      optionA: string;
+      optionB: string;
+      optionC: string;
+      optionD: string;
+      correctOptionKey: string;
+    }>;
+    tags: string[];
+  }> = [
+    // UPSC Questions
+    {
+      questionType: 'MCQ',
+      category: 'Indian Polity',
+      difficulty: 'medium',
+      isActive: true,
+      translations: [
+        {
+          language: 'en',
+          questionText: 'Which article of the Indian Constitution deals with the Right to Education?',
+          explanation: 'Article 21A was inserted by the 86th Constitutional Amendment Act, 2002 to provide free and compulsory education to all children aged 6-14 years.',
+          optionA: 'Article 21A',
+          optionB: 'Article 45',
+          optionC: 'Article 51A',
+          optionD: 'Article 350',
+          correctOptionKey: 'A'
+        }
+      ],
+      tags: ['Constitution', 'Education', 'Fundamental Rights']
+    },
+    {
+      questionType: 'MCQ',
+      category: 'Indian Economy',
+      difficulty: 'easy',
+      isActive: true,
+      translations: [
+        {
+          language: 'en',
+          questionText: 'What is the full form of GDP?',
+          explanation: 'GDP stands for Gross Domestic Product, which measures the total value of goods and services produced within a country in a specific time period.',
+          optionA: 'Gross Domestic Product',
+          optionB: 'Gross Development Product',
+          optionC: 'General Domestic Product',
+          optionD: 'General Development Product',
+          correctOptionKey: 'A'
+        }
+      ],
+      tags: ['Economics', 'GDP', 'Basic Concepts']
+    },
+    {
+      questionType: 'MCQ',
+      category: 'Geography',
+      difficulty: 'medium',
+      isActive: true,
+      translations: [
+        {
+          language: 'en',
+          questionText: 'Which is the highest peak in India?',
+          explanation: 'K2 (Mount Godwin-Austen) is the highest peak in India, located in the Karakoram Range. However, it is administered by Pakistan.',
+          optionA: 'Mount Everest',
+          optionB: 'K2',
+          optionC: 'Kangchenjunga',
+          optionD: 'Nanda Devi',
+          correctOptionKey: 'B'
+        }
+      ],
+      tags: ['Geography', 'Mountains', 'India']
+    },
+    // SSC Questions
+    {
+      questionType: 'MCQ',
+      category: 'Quantitative Aptitude',
+      difficulty: 'easy',
+      isActive: true,
+      translations: [
+        {
+          language: 'en',
+          questionText: 'What is 15% of 200?',
+          explanation: '15% of 200 = (15/100) × 200 = 30',
+          optionA: '25',
+          optionB: '30',
+          optionC: '35',
+          optionD: '40',
+          correctOptionKey: 'B'
+        }
+      ],
+      tags: ['Mathematics', 'Percentage', 'Basic Math']
+    },
+    {
+      questionType: 'MCQ',
+      category: 'English Language',
+      difficulty: 'medium',
+      isActive: true,
+      translations: [
+        {
+          language: 'en',
+          questionText: 'Choose the correct synonym for "Eloquent":',
+          explanation: 'Eloquent means fluent or persuasive in speaking or writing, which is synonymous with articulate.',
+          optionA: 'Silent',
+          optionB: 'Articulate',
+          optionC: 'Quiet',
+          optionD: 'Shy',
+          correctOptionKey: 'B'
+        }
+      ],
+      tags: ['English', 'Vocabulary', 'Synonyms']
+    },
+    // Banking Questions
+    {
+      questionType: 'MCQ',
+      category: 'Banking Awareness',
+      difficulty: 'medium',
+      isActive: true,
+      translations: [
+        {
+          language: 'en',
+          questionText: 'What does RBI stand for?',
+          explanation: 'RBI stands for Reserve Bank of India, which is the central bank of India.',
+          optionA: 'Reserve Bank of India',
+          optionB: 'Regional Bank of India',
+          optionC: 'Royal Bank of India',
+          optionD: 'Reserve Banking Institution',
+          correctOptionKey: 'A'
+        }
+      ],
+      tags: ['Banking', 'RBI', 'Financial Institutions']
+    },
+    // JEE Questions
+    {
+      questionType: 'MCQ',
+      category: 'Physics',
+      difficulty: 'hard',
+      isActive: true,
+      translations: [
+        {
+          language: 'en',
+          questionText: 'What is the SI unit of electric current?',
+          explanation: 'The SI unit of electric current is the Ampere (A), named after André-Marie Ampère.',
+          optionA: 'Volt',
+          optionB: 'Ampere',
+          optionC: 'Ohm',
+          optionD: 'Watt',
+          correctOptionKey: 'B'
+        }
+      ],
+      tags: ['Physics', 'Electricity', 'SI Units']
+    },
+    {
+      questionType: 'MCQ',
+      category: 'Chemistry',
+      difficulty: 'medium',
+      isActive: true,
+      translations: [
+        {
+          language: 'en',
+          questionText: 'What is the chemical symbol for gold?',
+          explanation: 'The chemical symbol for gold is Au, derived from the Latin word "aurum".',
+          optionA: 'Ag',
+          optionB: 'Au',
+          optionC: 'Fe',
+          optionD: 'Cu',
+          correctOptionKey: 'B'
+        }
+      ],
+      tags: ['Chemistry', 'Elements', 'Symbols']
+    },
+    {
+      questionType: 'MCQ',
+      category: 'Mathematics',
+      difficulty: 'hard',
+      isActive: true,
+      translations: [
+        {
+          language: 'en',
+          questionText: 'What is the derivative of x²?',
+          explanation: 'The derivative of x² is 2x, using the power rule of differentiation.',
+          optionA: 'x',
+          optionB: '2x',
+          optionC: 'x²',
+          optionD: '2x²',
+          correctOptionKey: 'B'
+        }
+      ],
+      tags: ['Mathematics', 'Calculus', 'Derivatives']
+    }
+  ];
+
+  // Create questions with translations and tags
+  const createdQuestions: any[] = [];
+  for (const questionData of questionsData) {
+    const { translations, tags, ...questionFields } = questionData;
+    
+    const question = await prisma.question.create({
+      data: {
+        ...questionFields,
+        translations: {
+          create: translations
+        },
+        tags: {
+          create: tags.map(tag => ({ tag }))
+        }
+      }
+    });
+    createdQuestions.push(question);
+  }
+
+  // Create sample quizzes
+  const quizzesData = [
+    {
+      title: 'UPSC Prelims Practice Test 1',
+      description: 'A comprehensive test covering Indian Polity, Economy, and Geography',
+      type: 'practice',
+      timeLimit: 60,
+      isActive: true,
+      isPublic: true,
+      createdBy: adminUser.id,
+      questions: [0, 1, 2] // First 3 questions
+    },
+    {
+      title: 'SSC CGL Quantitative Aptitude',
+      description: 'Practice questions for SSC CGL quantitative section',
+      type: 'practice',
+      timeLimit: 45,
+      isActive: true,
+      isPublic: true,
+      createdBy: adminUser.id,
+      questions: [3] // 4th question
+    },
+    {
+      title: 'Banking Awareness Quiz',
+      description: 'Test your knowledge of banking and financial institutions',
+      type: 'assessment',
+      timeLimit: 30,
+      isActive: true,
+      isPublic: true,
+      createdBy: adminUser.id,
+      questions: [5] // 6th question
+    },
+    {
+      title: 'JEE Main Physics Test',
+      description: 'Advanced physics questions for JEE Main preparation',
+      type: 'practice',
+      timeLimit: 90,
+      isActive: true,
+      isPublic: true,
+      createdBy: adminUser.id,
+      questions: [6, 7, 8] // Last 3 questions
+    },
+    {
+      title: 'Mixed Category Quiz',
+      description: 'Questions from various categories for general practice',
+      type: 'practice',
+      timeLimit: 75,
+      isActive: true,
+      isPublic: true,
+      createdBy: adminUser.id,
+      questions: [0, 3, 5, 7] // Mixed selection
+    }
+  ];
+
+  // Create quizzes with questions
+  const createdQuizzes = [];
+  for (const quizData of quizzesData) {
+    const { questions, ...quizFields } = quizData;
+    
+    const quiz = await prisma.quiz.create({
+      data: {
+        ...quizFields,
+        questions: {
+          create: questions.map((questionIndex, order) => ({
+            questionId: createdQuestions[questionIndex].id,
+            order: order + 1,
+            points: 1
+          }))
+        }
+      }
+    });
+    createdQuizzes.push(quiz);
+  }
+
   // Hero Sections (carousel)
   await prisma.heroSection.createMany({
     data: [
@@ -289,7 +584,9 @@ async function main() {
   console.log(`Created ${exams.length} exams`);
   console.log(`Created ${testSeriesData.length} test series`);
   console.log(`Created ${notesData.length} notes`);
-  console.log(`Created 3 users`);
+  console.log(`Created ${createdQuestions.length} questions`);
+  console.log(`Created ${createdQuizzes.length} quizzes`);
+  console.log(`Created 4 users (including admin)`);
   console.log(`Created 5 hero sections`);
 }
 

@@ -89,7 +89,7 @@ export default function UserMenu({ user, className = '' }: UserMenuProps) {
             
             {user.role === 'ADMIN' && (
               <Link
-                to="/admin/dashboard"
+                to="/admin"
                 className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
                 Admin Dashboard
