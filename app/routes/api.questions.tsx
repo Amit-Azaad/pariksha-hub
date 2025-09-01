@@ -9,6 +9,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const category = url.searchParams.get("category");
   const difficulty = url.searchParams.get("difficulty");
   const tags = url.searchParams.get("tags");
+  const search = url.searchParams.get("search");
   const page = parseInt(url.searchParams.get("page") || "1");
   const limit = parseInt(url.searchParams.get("limit") || "20");
   const offset = (page - 1) * limit;
@@ -22,6 +23,18 @@ export async function loader({ request }: LoaderFunctionArgs) {
       const tagArray = tags.split(",").map(tag => tag.trim());
       where.tags = { hasSome: tagArray };
     }
+    
+    // Add search functionality for question text
+    if (search) {
+      where.translations = {
+        some: {
+          language: "en",
+          questionText: {
+            contains: search
+          }
+        }
+      };
+    }
 
     const [questions, total] = await Promise.all([
       prisma.question.findMany({
@@ -29,7 +42,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
         include: {
           translations: {
             where: { language: "en" } // Default to English
-          }
+          },
+          tags: true
         },
         skip: offset,
         take: limit,
